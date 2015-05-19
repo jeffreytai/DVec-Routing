@@ -8,7 +8,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <netdb.h>
-#include <algorithm>  /* necessary for max() */
 
 #include <sys/time.h>
 #include <sys/select.h>
@@ -20,6 +19,10 @@
 // #define PORTD 10003
 // #define PORTE 10004
 // #define PORTF 10005
+
+#ifndef max
+	#define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
+#endif
 
 struct table {
 	char 	dest[6];
@@ -48,6 +51,8 @@ int main(int argc, char *argv[])
 
 	//struct table forwardingTable[6];
 
+	fd_set socks;
+
 	/* check command line arguments */
 	if (argc < 2) {
 		fprintf(stderr, "Error, no port provided\n");
@@ -64,10 +69,10 @@ int main(int argc, char *argv[])
 
 		switch(i+10000) {
 			case PORTA:
-				serveraddr[i].sin_port = htons(10000);
+				serveraddr[i].sin_port = htons((unsigned short)portno);
 				break;
 			case PORTB:
-				serveraddr[i].sin_port = htons(10000);
+				serveraddr[i].sin_port = htons(10001);
 				break;
 			default:
 				break;
@@ -81,25 +86,61 @@ int main(int argc, char *argv[])
 			error("Error on binding");
 	}
 
-	fd_set socks;
-	FD_ZERO(&socks);
-	FD_SET(sockfd, &socks);
-	FD_SET(sockfd2, &socks);
+	clientlen = sizeof(clientaddr);
 
-	int nsocks = max(sockfd, sockfd2) + 1;
-	
-	if (select(nsocks, &socks, (fd_set *)0, (fd_set *)0, 0) >= 0) {
-		if (FD_ISSET(sockfd, &socks)) {
-			n = recvfrom(sockfd, buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen);
-			if (n < 0)
-				error("Error receiving datagram from client");
-		}
-		if (FD_ISSET(sockfd2, &socks)) {
-			n = recvfrom(sockfd2, buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen);
-			if (n < 0)
-				error("Error receiving datagram from client");
+	while (1) {
+		FD_ZERO(&socks);
+		FD_SET(sockfd[0], &socks);
+		FD_SET(sockfd[1], &socks);
+
+		int nsocks = max(sockfd[0], sockfd[1]) + 1;
+		printf("Success\n");
+		int activity = select(nsocks, &socks, NULL, NULL, NULL);
+		printf("Activity: %i\n", activity);
+		if ( activity >= 0) {
+			printf("testing\n");
+			if (FD_ISSET(sockfd[0], &socks)) {
+				n = recvfrom(sockfd[0], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen);
+				if (n < 0)
+					error("Error receiving datagram from client");
+
+				printf("Successful\n");
+				hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, sizeof(clientaddr.sin_addr.s_addr), AF_INET);
+				if (hostp == NULL)
+					error("Error getting host by address");
+				/* Converts address from network bytes to IPv4 decimal notation string */
+				hostaddrp = inet_ntoa(clientaddr.sin_addr);
+				if (hostaddrp == NULL)
+					error ("Error on ntoa");
+				printf("Node received datagram from Port %d. Datagram sent to Port %d\n", ntohs(clientaddr.sin_port), ntohs(serveraddr[0].sin_port));
+
+				/* echo input back to client */
+				n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *)&clientaddr, clientlen);
+				if (n < 0)
+					error("Error sending to client");
+			}
+			if (FD_ISSET(sockfd[1], &socks)) {
+				n = recvfrom(sockfd[1], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen);
+				if (n < 0)
+					error("Error receiving datagram from client");
+
+				hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, sizeof(clientaddr.sin_addr.s_addr), AF_INET);
+				if (hostp == NULL)
+					error("Error getting host by address");
+				/* Converts address from network bytes to IPv4 decimal notation string */
+				hostaddrp = inet_ntoa(clientaddr.sin_addr);
+				if (hostaddrp == NULL)
+					error ("Error on ntoa");
+				printf("Node received datagram from Port %d. Datagram sent to Port %d\n", ntohs(clientaddr.sin_port), ntohs(serveraddr[1].sin_port));
+
+				/* echo input back to client */
+				n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *)&clientaddr, clientlen);
+				if (n < 0)
+					error("Error sending to client");
+			}
 		}
 	}
+	
 
 	/* create parent sockets */
 	// sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -124,27 +165,27 @@ int main(int argc, char *argv[])
 	
 
 	/* loop: wait for datagram, then echo it */
-	clientlen = sizeof(clientaddr);
-	while (1) {
-		/* receives UDP datagram from client */
-		bzero(buf, BUFSIZE);
+	// clientlen = sizeof(clientaddr);
+	// while (1) {
+	// 	/* receives UDP datagram from client */
+	// 	bzero(buf, BUFSIZE);
 
-		n = recvfrom(sockfd, buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen);
-		if (n < 0)
-			error("Error receiving datagram from client");
-		/* determine who sent the datagram */
-		hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, sizeof(clientaddr.sin_addr.s_addr), AF_INET);
-		if (hostp == NULL)
-			error("Error getting host by address");
-		/* Converts address from network bytes to IPv4 decimal notation string */
-		hostaddrp = inet_ntoa(clientaddr.sin_addr);
-		if (hostaddrp == NULL)
-			error ("Error on ntoa");
-		printf("Node received datagram from Port %d. Datagram sent to Port %d\n", ntohs(clientaddr.sin_port), ntohs(serveraddr.sin_port));
+	// 	n = recvfrom(sockfd, buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen);
+	// 	if (n < 0)
+	// 		error("Error receiving datagram from client");
+	// 	/* determine who sent the datagram */
+	// 	hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, sizeof(clientaddr.sin_addr.s_addr), AF_INET);
+	// 	if (hostp == NULL)
+	// 		error("Error getting host by address");
+	// 	 Converts address from network bytes to IPv4 decimal notation string 
+	// 	hostaddrp = inet_ntoa(clientaddr.sin_addr);
+	// 	if (hostaddrp == NULL)
+	// 		error ("Error on ntoa");
+	// 	printf("Node received datagram from Port %d. Datagram sent to Port %d\n", ntohs(clientaddr.sin_port), ntohs(serveraddr.sin_port));
 
-		/* echo input back to client */
-		n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *)&clientaddr, clientlen);
-		if (n < 0)
-			error("Error sending to client");
-	}
+	// 	/* echo input back to client */
+	// 	n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *)&clientaddr, clientlen);
+	// 	if (n < 0)
+	// 		error("Error sending to client");
+	// }
 }
