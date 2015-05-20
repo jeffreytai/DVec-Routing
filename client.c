@@ -24,7 +24,7 @@ int main(int argc, char**argv)
    bzero(&servaddr,sizeof(servaddr));
    servaddr.sin_family = AF_INET;
    servaddr.sin_addr.s_addr=inet_addr(argv[1]);
-   servaddr.sin_port=htons(10000);
+   servaddr.sin_port=htons(10001);
 
    while (fgets(sendline, 10000,stdin) != NULL)
    {
