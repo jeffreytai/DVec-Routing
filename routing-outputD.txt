@@ -1,0 +1,9 @@
+Timestamp: Fri May 22 05:13:18 2015
+
+Destination, Cost, Outgoing Port, Destination Port
+A 0 0 0
+B 0 0 0
+C 2 10003 10002
+D 0 10003 10003
+E 0 0 0
+F 3 10003 10005

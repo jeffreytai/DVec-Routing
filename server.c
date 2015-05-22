@@ -75,6 +75,40 @@ void updateTable(struct router *currTable, struct router rcvdTable)
 	return;
 }
 
+void initializeOutputFiles(struct router *network) {
+	char routerLetters[] = "ABCDEF";
+	char *s;
+	int tableIndex = 0;
+	for ( s = &routerLetters[0]; *s != '\0'; s++, tableIndex++ ) {
+		char path[20];
+		strcpy(path, "routing-output");
+		size_t len = strlen(path);
+		path[len] = *s;
+		path[len+1] = '\0';
+		strcat(path, ".txt");
+
+		FILE *f = fopen(path, "w");
+		if (f == NULL)
+			error("Error opening file");
+		/* Timestamp */
+		time_t ltime;
+	    ltime=time(NULL);
+	    fprintf(f, "Timestamp: %s\n",asctime( localtime(&ltime) ) );
+		
+		fprintf(f, "Destination, Cost, Outgoing Port, Destination Port\n");
+	    for (int i=0; i<NUMROUTERS; i++) {
+	    	fprintf(f, "%c %i %i %i\n",
+	    		network[tableIndex].otherRouters[i],
+	    		network[tableIndex].costs[i],
+	    		network[tableIndex].outgoingPorts[i],
+	    		network[tableIndex].destinationPorts[i]);
+	    }
+
+		fclose(f);
+	}
+
+}
+
 int main(int argc, char *argv[])
 {
 	int sockfd[2]; /* socket */
@@ -102,7 +136,7 @@ int main(int argc, char *argv[])
 		{   'A', 	 'B', 	  'C', 	 'D',	 'E', 	   'F'  },
 		{ 	 3, 	  0, 	   3, 	 NULL, 	  2, 	   1    },
 		{ ROUTERB, ROUTERB, ROUTERB, NULL, ROUTERB, ROUTERB },
-		{ ROUTERA, ROUTERB, ROUTERC, NULL, ROUTERE, NULL    }
+		{ ROUTERA, ROUTERB, ROUTERC, NULL, ROUTERE, ROUTERF }
 	};
 
 	struct router tableC = {
@@ -136,6 +170,20 @@ int main(int argc, char *argv[])
 		{  NULL, ROUTERF, ROUTERF, ROUTERF, ROUTERF, ROUTERF },
 		{  NULL, ROUTERB, ROUTERC, ROUTERD, ROUTERE, ROUTERF }
 	};
+
+	struct router *network = malloc(NUMROUTERS * sizeof(struct router));
+	network[0] = tableA;
+	network[1] = tableB;
+	network[2] = tableC;
+	network[3] = tableD;
+	network[4] = tableE;
+	network[5] = tableF;
+
+	for (int i=0; i<NUMROUTERS; i++) {
+		printf("%c, %i, %i, %i\n", network[0].otherRouters[i], network[0].costs[i], network[0].outgoingPorts[i], network[0].destinationPorts[i]);
+	}
+
+	initializeOutputFiles(network);
 
 	for (int i=0; i<2; i++) {
 		/* create parent socket */
@@ -200,17 +248,9 @@ int main(int argc, char *argv[])
 				struct router *compTable = NULL;
 				compTable = malloc(BUFSIZE);
 				memcpy(compTable, buf, sizeof(struct router));
-				for (int x=0; x<6; x++)
-					printf("compTable elements - dest: %c, cost: %i, outgoingPorts: %i, destinationPorts: %i\n", compTable->otherRouters[x], compTable->costs[x], compTable->outgoingPorts[x], compTable->destinationPorts[x]);
-
-				printf("Original Table A\n");
-				for (int x=0; x<6; x++)
-					printf("table A elements - dest: %c, cost: %i, outgoingPorts: %i, destinationPorts: %i\n", tableA.otherRouters[x], tableA.costs[x], tableA.outgoingPorts[x], tableA.destinationPorts[x]);
 
 				updateTable(&tableA, *compTable);
-				printf("Updated Table A\n");
-				for (int x=0; x<6; x++)
-					printf("table A elements - dest: %c, cost: %i, outgoingPorts: %i, destinationPorts: %i\n", tableA.otherRouters[x], tableA.costs[x], tableA.outgoingPorts[x], tableA.destinationPorts[x]);
+
 				/* echo input back to client */
 				//n = sendto(sockfd[0], buf, sizeof(router), 0, (struct sockaddr *)&clientaddr, clientlen);
 				n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
@@ -233,7 +273,6 @@ int main(int argc, char *argv[])
 
 				memset(&buf, 0, BUFSIZE);
 				memcpy(buf, &tableB, sizeof(struct router));
-
 
 				/* echo input back to client */
 				n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[0], clientlen);
