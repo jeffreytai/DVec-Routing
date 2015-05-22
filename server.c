@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <netdb.h>
+#include <stdbool.h>
 
 #include <sys/time.h>   /* For FD_SET, FD_SELECT */
 #include <sys/select.h>
@@ -45,6 +46,11 @@ struct router
 void error(char *msg) {
 	perror(msg);
 	exit(1);
+}
+
+bool stableState() {
+	//
+	return false;
 }
 
 void updateTable(struct router *currTable, struct router rcvdTable)
@@ -97,6 +103,38 @@ int main(int argc, char *argv[])
 		{ 	 3, 	  0, 	   3, 	 NULL, 	  2, 	   1    },
 		{ ROUTERB, ROUTERB, ROUTERB, NULL, ROUTERB, ROUTERB },
 		{ ROUTERA, ROUTERB, ROUTERC, NULL, ROUTERE, NULL    }
+	};
+
+	struct router tableC = {
+		INDEXC,
+		{   'A', 	 'B', 	  'C', 	 'D',	 'E', 	   'F'   },
+		{ 	NULL, 	  3, 	   0, 	  2, 	 NULL, 	    1    },
+		{   NULL, ROUTERC, ROUTERC, ROUTERC, NULL,   ROUTERC },
+		{   NULL, ROUTERB, ROUTERC, ROUTERD, NULL,   ROUTERF }
+	};
+
+	struct router tableD = {
+		INDEXD,
+		{   'A',   'B',    'C',    'D',	   'E',    'F'   },
+		{ 	NULL,  NULL, 	2, 	    0, 	   NULL, 	3    },
+		{   NULL,  NULL, ROUTERD, ROUTERD, NULL, ROUTERD },
+		{   NULL,  NULL, ROUTERC, ROUTERD, NULL, ROUTERF }
+	};
+
+	struct router tableE = {
+		INDEXE,
+		{  'A',     'B',      'C',   'D',   'E',     'F'   },
+		{   1,       2,      NULL,  NULL,    0,       3    },
+		{ ROUTERE, ROUTERE,  NULL,  NULL, ROUTERE, ROUTERE },
+		{ ROUTERA, ROUTERB,  NULL,  NULL, ROUTERE, ROUTERF }
+	};
+
+	struct router tableF = {
+		INDEXF,
+		{  'A',    'B',     'C',    'D',     'E',     'F'    },
+		{  NULL,    1,       1,      3,       3,       0     },
+		{  NULL, ROUTERF, ROUTERF, ROUTERF, ROUTERF, ROUTERF },
+		{  NULL, ROUTERB, ROUTERC, ROUTERD, ROUTERE, ROUTERF }
 	};
 
 	for (int i=0; i<2; i++) {
@@ -201,6 +239,9 @@ int main(int argc, char *argv[])
 				n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[0], clientlen);
 				if (n < 0)
 					error("Error sending to client");
+			}
+			if (stableState()) {
+				break;
 			}
 		}
 	}
