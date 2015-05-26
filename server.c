@@ -8,7 +8,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <netdb.h>
-#include <stdbool.h>
+#include <stdbool.h> /* boolean */
+#include <limits.h> /* INT_MAX */
 
 #include <sys/time.h>   /* For FD_SET, FD_SELECT */
 #include <sys/select.h>
@@ -110,19 +111,16 @@ void updateTable(struct router *currTable, struct router rcvdTable)
 	for (int i=0; i<NUMROUTERS; i++) {
 		// ignore own entry in table
 		if (i != currTable->index) {
-			// get information on previously unknown routers
-			if (currTable->costs[i] == NULL && rcvdTable.costs[i] != NULL && rcvdTable.costs[i] != 0) {
+			// find shortest paths to other routers
+			if (rcvdTable.costs[i] == INT_MAX) {
+				continue;
+			} else if ( currTable->costs[i] > rcvdTable.costs[i] + currTable->costs[rcvdTable.index] ) {
+				printf("Cost %i will change to %i\n", currTable->costs[i], rcvdTable.costs[i] + currTable->costs[rcvdTable.index]);
 				currTable->costs[i] = rcvdTable.costs[i] + currTable->costs[rcvdTable.index];
-				currTable->destinationPorts[i] = rcvdTable.destinationPorts[i];
 				currTable->outgoingPorts[i] = rcvdTable.index + 10000;
+				currTable->destinationPorts[i] = rcvdTable.destinationPorts[i];
 				isChanged = true;
 			}
-			// find shorter paths to other routers
-			// for (int j=0; j<NUMROUTERS, j++) {
-			// 	if (i != j) {
-			// 		if (currTable.costs[i] > currTable.costs[rcvdTable.index] + rcvdTable.costs[i])
-			// 	}
-			// }
 		}
 	}
 	if (isChanged)
@@ -182,31 +180,31 @@ int main(int argc, char *argv[])
 	struct router tableA = {
 		INDEXA,
 		{   'A', 	 'B', 	'C',   'D',   'E',    'F' },
-		{    0, 	  3, 	NULL, NULL,    1, 	 NULL },
+		{    0, 	  /*3*/1, 	INT_MAX, INT_MAX,    4, 	 INT_MAX },
 		{ ROUTERA, ROUTERA, NULL, NULL, ROUTERA, NULL },
 		{ ROUTERA, ROUTERB, NULL, NULL, ROUTERE, NULL }
 	};
 
 	struct router tableB = {
 		INDEXB,
-		{   'A', 	 'B', 	  'C', 	 'D',	 'E', 	   'F'  },
-		{ 	 3, 	  0, 	   3, 	 NULL, 	  2, 	   1    },
-		{ ROUTERB, ROUTERB, ROUTERB, NULL, ROUTERB, ROUTERB },
-		{ ROUTERA, ROUTERB, ROUTERC, NULL, ROUTERE, ROUTERF }
+		{   'A', 	 'B', 	  'C', 	   'D',	   'E',     'F'   },
+		{ 	 3, 	  0, 	   3, 	 INT_MAX, 	2, 	     1    },
+		{ ROUTERB, ROUTERB, ROUTERB, NULL,   ROUTERB, ROUTERB },
+		{ ROUTERA, ROUTERB, ROUTERC, NULL,   ROUTERE, ROUTERF }
 	};
 
 	struct router tableC = {
 		INDEXC,
-		{   'A', 	 'B', 	  'C', 	 'D',	 'E', 	   'F'   },
-		{ 	NULL, 	  3, 	   0, 	  2, 	 NULL, 	    1    },
-		{   NULL, ROUTERC, ROUTERC, ROUTERC, NULL,   ROUTERC },
-		{   NULL, ROUTERB, ROUTERC, ROUTERD, NULL,   ROUTERF }
+		{   'A', 	  'B', 	  'C', 	   'D',	   'E', 	'F'    },
+		{ 	INT_MAX,   3, 	   0, 	    2, 	  INT_MAX, 	 1     },
+		{   NULL,   ROUTERC, ROUTERC, ROUTERC, NULL,   ROUTERC },
+		{   NULL,   ROUTERB, ROUTERC, ROUTERD, NULL,   ROUTERF }
 	};
 
 	struct router tableD = {
 		INDEXD,
 		{   'A',   'B',    'C',    'D',	   'E',    'F'   },
-		{ 	NULL,  NULL, 	2, 	    0, 	   NULL, 	3    },
+		{ 	INT_MAX,  INT_MAX, 	2, 	    0, 	   INT_MAX, 	3    },
 		{   NULL,  NULL, ROUTERD, ROUTERD, NULL, ROUTERD },
 		{   NULL,  NULL, ROUTERC, ROUTERD, NULL, ROUTERF }
 	};
@@ -214,7 +212,7 @@ int main(int argc, char *argv[])
 	struct router tableE = {
 		INDEXE,
 		{  'A',     'B',      'C',   'D',   'E',     'F'   },
-		{   1,       2,      NULL,  NULL,    0,       3    },
+		{   1,       2,      INT_MAX,  INT_MAX,    0,       3    },
 		{ ROUTERE, ROUTERE,  NULL,  NULL, ROUTERE, ROUTERE },
 		{ ROUTERA, ROUTERB,  NULL,  NULL, ROUTERE, ROUTERF }
 	};
@@ -222,7 +220,7 @@ int main(int argc, char *argv[])
 	struct router tableF = {
 		INDEXF,
 		{  'A',    'B',     'C',    'D',     'E',     'F'    },
-		{  NULL,    1,       1,      3,       3,       0     },
+		{  INT_MAX,    1,       1,      3,       3,       0     },
 		{  NULL, ROUTERF, ROUTERF, ROUTERF, ROUTERF, ROUTERF },
 		{  NULL, ROUTERB, ROUTERC, ROUTERD, ROUTERE, ROUTERF }
 	};
