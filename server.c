@@ -53,8 +53,60 @@ bool stableState() {
 	return false;
 }
 
+/* currently unused */
+bool tablesEqual(struct router *table1, struct router table2) {
+	for (int idx=0; idx<NUMROUTERS; idx++) {
+		if (
+			(table1->otherRouters[idx] != table2.otherRouters[idx])
+			|| (table1->costs[idx] != table2.costs[idx])
+			|| (table1->outgoingPorts[idx] != table2.outgoingPorts[idx])
+			|| (table1->destinationPorts[idx] != table2.destinationPorts[idx]) )
+			return false;
+	}
+	return true;
+}
+
+void outputTable(struct router *table) {
+	FILE *f = NULL;
+	switch (table->index) {
+		case INDEXA:
+			f = fopen("routing-outputA.txt", "a");
+			break;
+		case INDEXB:
+			f = fopen("routing-outputB.txt", "a");
+			break;
+		case INDEXC:
+			f = fopen("routing-outputC.txt", "a");
+			break;
+		case INDEXD:
+			f = fopen("routing-outputD.txt", "a");
+			break;
+		case INDEXE:
+			f = fopen("routing-outputE.txt", "a");
+			break;
+		case INDEXF:
+			f = fopen("routing-outputF.txt", "a");
+			break;
+	}
+	time_t ltime;
+    ltime=time(NULL);
+    fprintf(f, "\nTimestamp: %s\n",asctime( localtime(&ltime) ) );
+
+    fprintf(f, "Destination, Cost, Outgoing Port, Destination Port\n");
+    for (int i=0; i<NUMROUTERS; i++) {
+    	fprintf(f, "%c %i %i %i\n",
+    		table->otherRouters[i],
+    		table->costs[i],
+    		table->outgoingPorts[i],
+    		table->destinationPorts[i]);
+    }
+    return;
+}
+
+/* updates table if possible. if table is changed, output to file */
 void updateTable(struct router *currTable, struct router rcvdTable)
 {
+	bool isChanged = false;
 	for (int i=0; i<NUMROUTERS; i++) {
 		// ignore own entry in table
 		if (i != currTable->index) {
@@ -63,8 +115,9 @@ void updateTable(struct router *currTable, struct router rcvdTable)
 				currTable->costs[i] = rcvdTable.costs[i] + currTable->costs[rcvdTable.index];
 				currTable->destinationPorts[i] = rcvdTable.destinationPorts[i];
 				currTable->outgoingPorts[i] = rcvdTable.index + 10000;
+				isChanged = true;
 			}
-			// // find shorter paths to other routers
+			// find shorter paths to other routers
 			// for (int j=0; j<NUMROUTERS, j++) {
 			// 	if (i != j) {
 			// 		if (currTable.costs[i] > currTable.costs[rcvdTable.index] + rcvdTable.costs[i])
@@ -72,6 +125,8 @@ void updateTable(struct router *currTable, struct router rcvdTable)
 			// }
 		}
 	}
+	if (isChanged)
+		outputTable(currTable);
 	return;
 }
 
@@ -106,7 +161,7 @@ void initializeOutputFiles(struct router *network) {
 
 		fclose(f);
 	}
-
+	return;
 }
 
 int main(int argc, char *argv[])
@@ -123,6 +178,7 @@ int main(int argc, char *argv[])
 
 	fd_set socks;
 
+	/* for testing/development */
 	struct router tableA = {
 		INDEXA,
 		{   'A', 	 'B', 	'C',   'D',   'E',    'F' },
@@ -170,6 +226,7 @@ int main(int argc, char *argv[])
 		{  NULL, ROUTERF, ROUTERF, ROUTERF, ROUTERF, ROUTERF },
 		{  NULL, ROUTERB, ROUTERC, ROUTERD, ROUTERE, ROUTERF }
 	};
+	/* end testing/developing */
 
 	struct router *network = malloc(NUMROUTERS * sizeof(struct router));
 	network[0] = tableA;
@@ -178,10 +235,6 @@ int main(int argc, char *argv[])
 	network[3] = tableD;
 	network[4] = tableE;
 	network[5] = tableF;
-
-	for (int i=0; i<NUMROUTERS; i++) {
-		printf("%c, %i, %i, %i\n", network[0].otherRouters[i], network[0].costs[i], network[0].outgoingPorts[i], network[0].destinationPorts[i]);
-	}
 
 	initializeOutputFiles(network);
 
