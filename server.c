@@ -105,8 +105,7 @@ void outputTable(struct router *table) {
 }
 
 /* updates table if possible. if table is changed, output to file */
-void updateTable(struct router *currTable, struct router rcvdTable)
-{
+void updateTable(struct router *currTable, struct router rcvdTable) {
 	bool isChanged = false;
 	for (int i=0; i<NUMROUTERS; i++) {
 		// ignore own entry in table
@@ -405,7 +404,7 @@ int main(int argc, char *argv[])
 		{   'A',     NULL,    NULL,    NULL,    NULL,    NULL   },
 		{    0,     INT_MAX, INT_MAX, INT_MAX, INT_MAX, INT_MAX },
 		{ ROUTERA,   NULL,    NULL,    NULL,    NULL,    NULL   },
-		{ ROUTERA,     NULL,    NULL,    NULL,    NULL,    NULL   }
+		{ ROUTERA,   NULL,    NULL,    NULL,    NULL,    NULL   }
 	};
 	struct router tableB = {
 		INDEXB,
@@ -447,15 +446,15 @@ int main(int argc, char *argv[])
 
 	/* end testing */
 
-	// struct router *network = malloc(NUMROUTERS * sizeof(struct router));
-	// network[0] = tableA;
-	// network[1] = tableB;
-	// network[2] = tableC;
-	// network[3] = tableD;
-	// network[4] = tableE;
-	// network[5] = tableF;
+	struct router *network = malloc(NUMROUTERS * sizeof(struct router));
+	network[0] = tableA;
+	network[1] = tableB;
+	network[2] = tableC;
+	network[3] = tableD;
+	network[4] = tableE;
+	network[5] = tableF;
 
-	// initializeOutputFiles(network);
+	initializeOutputFiles(network);
 
 	// for (int i=0; i<2; i++) {
 	// 	/* create parent socket */
