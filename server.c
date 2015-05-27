@@ -176,55 +176,55 @@ int main(int argc, char *argv[])
 
 	fd_set socks;
 
-	/* for testing/development */
+	/* for development */
 	struct router tableA = {
 		INDEXA,
-		{   'A', 	 'B', 	'C',   'D',   'E',    'F' },
-		{    0, 	  /*3*/1, 	INT_MAX, INT_MAX,    4, 	 INT_MAX },
-		{ ROUTERA, ROUTERA, NULL, NULL, ROUTERA, NULL },
-		{ ROUTERA, ROUTERB, NULL, NULL, ROUTERE, NULL }
+		{   'A', 	 'B', 	 'C',     'D',     'E',      'F'   },
+		{    0, 	  3, 	INT_MAX, INT_MAX,   4, 	   INT_MAX },
+		{ ROUTERA, ROUTERA,  NULL,    NULL,   ROUTERA,  NULL   },
+		{ ROUTERA, ROUTERB,  NULL,    NULL,   ROUTERE,  NULL   }
 	};
 
 	struct router tableB = {
 		INDEXB,
-		{   'A', 	 'B', 	  'C', 	   'D',	   'E',     'F'   },
-		{ 	 3, 	  0, 	   3, 	 INT_MAX, 	2, 	     1    },
-		{ ROUTERB, ROUTERB, ROUTERB, NULL,   ROUTERB, ROUTERB },
-		{ ROUTERA, ROUTERB, ROUTERC, NULL,   ROUTERE, ROUTERF }
+		{   'A', 	 'B', 	  'C', 	   'D',	   'E',     'F'    },
+		{ 	 3, 	  0, 	   3, 	 INT_MAX, 	2, 	     1     },
+		{ ROUTERB, ROUTERB, ROUTERB,  NULL,   ROUTERB, ROUTERB },
+		{ ROUTERA, ROUTERB, ROUTERC,  NULL,   ROUTERE, ROUTERF }
 	};
 
 	struct router tableC = {
 		INDEXC,
-		{   'A', 	  'B', 	  'C', 	   'D',	   'E', 	'F'    },
-		{ 	INT_MAX,   3, 	   0, 	    2, 	  INT_MAX, 	 1     },
-		{   NULL,   ROUTERC, ROUTERC, ROUTERC, NULL,   ROUTERC },
-		{   NULL,   ROUTERB, ROUTERC, ROUTERD, NULL,   ROUTERF }
+		{   'A', 	 'B', 	  'C', 	   'D',	   'E', 	 'F'   },
+		{ INT_MAX,    3, 	   0, 	    2, 	  INT_MAX, 	  1    },
+		{   NULL,  ROUTERC, ROUTERC, ROUTERC,  NULL,   ROUTERC },
+		{   NULL,  ROUTERB, ROUTERC, ROUTERD,  NULL,   ROUTERF }
 	};
 
 	struct router tableD = {
 		INDEXD,
-		{   'A',   'B',    'C',    'D',	   'E',    'F'   },
-		{ 	INT_MAX,  INT_MAX, 	2, 	    0, 	   INT_MAX, 	3    },
-		{   NULL,  NULL, ROUTERD, ROUTERD, NULL, ROUTERD },
-		{   NULL,  NULL, ROUTERC, ROUTERD, NULL, ROUTERF }
+		{   'A',    'B',      'C',    'D',	   'E',     'F'   },
+		{ INT_MAX, INT_MAX,    2, 	   0, 	  INT_MAX, 	 3    },
+		{   NULL,   NULL,   ROUTERD, ROUTERD,  NULL,  ROUTERD },
+		{   NULL,   NULL,   ROUTERC, ROUTERD,  NULL,  ROUTERF }
 	};
 
 	struct router tableE = {
 		INDEXE,
-		{  'A',     'B',      'C',   'D',   'E',     'F'   },
-		{   1,       2,      INT_MAX,  INT_MAX,    0,       3    },
-		{ ROUTERE, ROUTERE,  NULL,  NULL, ROUTERE, ROUTERE },
-		{ ROUTERA, ROUTERB,  NULL,  NULL, ROUTERE, ROUTERF }
+		{  'A',      'B',     'C',     'D',     'E',     'F'   },
+		{   1,        2,    INT_MAX, INT_MAX,    0,       3    },
+		{ ROUTERE, ROUTERE,   NULL,    NULL,  ROUTERE, ROUTERE },
+		{ ROUTERA, ROUTERB,   NULL,    NULL,  ROUTERE, ROUTERF }
 	};
 
 	struct router tableF = {
 		INDEXF,
-		{  'A',    'B',     'C',    'D',     'E',     'F'    },
+		{  'A',       'B',     'C',    'D',     'E',     'F'    },
 		{  INT_MAX,    1,       1,      3,       3,       0     },
-		{  NULL, ROUTERF, ROUTERF, ROUTERF, ROUTERF, ROUTERF },
-		{  NULL, ROUTERB, ROUTERC, ROUTERD, ROUTERE, ROUTERF }
+		{   NULL,   ROUTERF, ROUTERF, ROUTERF, ROUTERF, ROUTERF },
+		{   NULL,   ROUTERB, ROUTERC, ROUTERD, ROUTERE, ROUTERF }
 	};
-	/* end testing/developing */
+	/* end development */
 
 	struct router *network = malloc(NUMROUTERS * sizeof(struct router));
 	network[0] = tableA;
