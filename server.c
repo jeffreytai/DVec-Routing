@@ -34,7 +34,7 @@
 	#define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
 #endif
 
-// struct node is size 80
+// struct node is size 84
 struct router
 {
 	int index;
@@ -72,7 +72,7 @@ bool tablesEqual(struct router *table1, struct router table2) {
 	return true;
 }
 
-void tableToBuffer(int *buf, struct router *table) {
+void tableToBuffer(struct router *table, int *buf) {
 	int currSize=0;
 	memset(buf, 0, BUFSIZE);
 
@@ -106,7 +106,39 @@ void tableToBuffer(int *buf, struct router *table) {
 	// }
 }
 
+void bufferToTable(int *buf, struct router *table) {
+	int currSize=0;
+	memset(table, 0, BUFSIZE);
 
+	memcpy(&table->index, buf, sizeof(table->index));
+	// printf("%i\n", table->index);
+	currSize += sizeof(table->index);
+
+	memcpy(&table->otherRouters, buf+currSize, sizeof(table->otherRouters));
+	// char *c = table->otherRouters;
+	// for (int i=0; i<NUMROUTERS; i++) {
+	// 	printf("%c\n", c[0]);
+	// 	c++;
+	// }
+	currSize += sizeof(table->otherRouters);
+
+	memcpy(&table->costs, buf+currSize, sizeof(table->costs));
+	// for (int i=0; i<NUMROUTERS; i++) {
+	// 	printf("%i\n", table->costs[i]);
+	// }
+	currSize += sizeof(table->costs);
+
+	memcpy(&table->outgoingPorts, buf+currSize, sizeof(table->outgoingPorts));
+	// for (int i=0; i<NUMROUTERS; i++) {
+	// 	printf("%i\n", table->outgoingPorts[i]);
+	// }
+	currSize += sizeof(table->outgoingPorts);
+
+	memcpy(&table->destinationPorts, buf+currSize, sizeof(table->destinationPorts));
+	// for (int i=0; i<NUMROUTERS; i++) {
+	// 	printf("%i\n", table->destinationPorts[i]);
+	// }
+}
 
 void outputTable(struct router *table) {
 	FILE *f = NULL;
@@ -517,7 +549,6 @@ int main(int argc, char *argv[])
 
 	/* end development */
 
-
 	/* for testing */
 
 	struct router tableA = {
@@ -633,10 +664,7 @@ int main(int argc, char *argv[])
 	// memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters), &tableA.costs, sizeof(tableA.costs));
 	// memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs), &tableA.outgoingPorts, sizeof(tableA.outgoingPorts));
 	// memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs) + sizeof(tableA.outgoingPorts), &tableA.destinationPorts, sizeof(tableA.destinationPorts));
-	tableToBuffer(&buf, &tableA);
-
-
-
+	tableToBuffer(&tableA, &buf);
 	n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[start], clientlen);
 
 	int nsocks = max(sockfd[0], sockfd[1]) + 1;
@@ -662,13 +690,6 @@ int main(int argc, char *argv[])
 				updateTable(&tableA, *compTable);
 				free(compTable);
 
-				memset(buf, 0, BUFSIZE);
-				memcpy(buf, &tableA.index, sizeof(tableA.index));
-				memcpy(buf + sizeof(tableA.index), &tableA.otherRouters, sizeof(tableA.otherRouters));
-				memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters), &tableA.costs, sizeof(tableA.costs));
-				memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs), &tableA.outgoingPorts, sizeof(tableA.outgoingPorts));
-				memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs) + sizeof(tableA.outgoingPorts), &tableA.destinationPorts, sizeof(tableA.destinationPorts));
-
 				n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
 				if (n < 0)
 					error("Error sending to client");
@@ -678,14 +699,11 @@ int main(int argc, char *argv[])
 
 				struct router *compTable = NULL;
 				compTable = malloc(BUFSIZE);
-				memcpy(compTable, buf, sizeof(struct router));
+				bufferToTable(&buf, &compTable);
+				// memcpy(compTable, buf, sizeof(struct router));
 
-				updateTable(&tableB, *compTable);
-				free(compTable);
-
-				// tableToBuffer(&buf, tableB);
-				// memset(&buf, 0, BUFSIZE);
-				// memcpy(buf, &tableB, sizeof(struct router));
+				// updateTable(&tableB, *compTable);
+				// free(compTable);
 
 				/* echo input back to client */
 				n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[0], clientlen);
