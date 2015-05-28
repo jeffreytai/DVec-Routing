@@ -44,6 +44,11 @@ struct router
 	int destinationPorts[6];
 };
 
+struct matrix
+{
+	int r[6][6];
+};
+
 void error(char *msg) {
 	perror(msg);
 	exit(1);
@@ -65,6 +70,56 @@ bool tablesEqual(struct router *table1, struct router table2) {
 			return false;
 	}
 	return true;
+}
+
+void tableToBuffer(char *buf, struct router *table) {
+	int currSize=0;
+	memset(buf, 0, BUFSIZE);
+	memcpy(buf, &table->index, sizeof(table->index));
+	currSize += sizeof(table->index);
+	printf("Table index: %i\n", buf[0]);
+	printf("Size: %i\n", currSize);
+
+	memcpy(buf + currSize, &table->otherRouters, sizeof(table->otherRouters));
+	currSize += sizeof(table->otherRouters);
+	printf("Other routers: ");
+	for (int i=0; i<NUMROUTERS; i++) {
+		printf("%c ", buf[sizeof(int)+i]);
+	}
+	printf("\nSize: %i\n", currSize);
+
+	memcpy(buf + currSize, &table->costs, sizeof(table->costs));
+	currSize += sizeof(table->costs);
+	printf("Costs: ");
+	for (int i=0; i<NUMROUTERS; i++) {
+		printf("%i ", buf[sizeof(int)+6+4*i]);
+	}
+	printf("\nSize: %i\n", currSize);
+
+	memcpy(buf + currSize, &table->outgoingPorts[0], sizeof(table->outgoingPorts[0]));
+	printf("Outgoing port: %s\n", buf + currSize);
+	// for (int i=0; i<NUMROUTERS; i++) {
+	// 	memcpy(buf + currSize, &table->outgoingPorts[i], sizeof(table->outgoingPorts[i]));
+	// 	currSize += sizeof(table->outgoingPorts[i]);
+	// 	printf("Element: %i ", buf[currSize-1+4*i]);
+	// 	printf("Curr size: %i\n", currSize);
+	// }
+	// memcpy(buf + currSize, &table->outgoingPorts, sizeof(table->outgoingPorts));
+	// currSize += sizeof(table->outgoingPorts);
+	// printf("Outgoing ports: ");
+	// for (int i=0; i<NUMROUTERS; i++) {
+	// 	printf("%i ", buf[sizeof(int)+30+i]);
+	// }
+	// printf("\nSize: %i\n", currSize);
+
+	// int x = 10000;
+	// printf("Val: %d\n", x);
+
+	// memcpy(buf + sizeof(table->index), &table->otherRouters, sizeof(table->otherRouters));
+	// memcpy(buf + sizeof(table->index) + sizeof(table->otherRouters), &table->costs, sizeof(table->costs));
+	// memcpy(buf + sizeof(table->index) + sizeof(table->otherRouters) + sizeof(table->costs), &table->outgoingPorts, sizeof(table->outgoingPorts));
+	// memcpy(buf + sizeof(table->index) + sizeof(table->otherRouters) + sizeof(table->costs) + sizeof(table->outgoingPorts), &table->destinationPorts, sizeof(table->destinationPorts));	
+
 }
 
 void outputTable(struct router *table) {
@@ -114,6 +169,7 @@ void updateTable(struct router *currTable, struct router rcvdTable) {
 			if (rcvdTable.costs[i] == INT_MAX) {
 				continue;
 			} else if ( currTable->costs[i] > rcvdTable.costs[i] + currTable->costs[rcvdTable.index] ) {
+				currTable->otherRouters[i] = rcvdTable.otherRouters[i];
 				currTable->costs[i] = rcvdTable.costs[i] + currTable->costs[rcvdTable.index];
 				currTable->outgoingPorts[i] = rcvdTable.index + 10000;
 				currTable->destinationPorts[i] = rcvdTable.destinationPorts[i];
@@ -160,10 +216,16 @@ void initializeOutputFiles(struct router *network) {
 	return;
 }
 
-void initializeFromFile(struct router *tableA, struct router *tableB, struct router *tableC, struct router *tableD, struct router *tableE, struct router *tableF) {
+struct matrix initializeFromFile(struct router *tableA, struct router *tableB, struct router *tableC, struct router *tableD, struct router *tableE, struct router *tableF) {
 	FILE *f = fopen("sample.txt", "r");
 	if (f == NULL)
 		error("Error opening sample file");
+
+	int numNeighbors[NUMROUTERS] = {0};
+
+	struct matrix neighborMatrix;
+	memset(neighborMatrix.r, -1, sizeof(int) * 6 * 6);
+
 	char line[12];
 	while (fgets(line, 12, f) != NULL) {
 		char *ptr = strtok(line, ",");
@@ -174,18 +236,23 @@ void initializeFromFile(struct router *tableA, struct router *tableB, struct rou
 			switch (atoi(ptrOP)) {
 				case 10001:
 					tableA->otherRouters[atoi(ptrOP)-10000] = 'B';
+					numNeighbors[0]++;
 					break;
 				case 10002:
 					tableA->otherRouters[atoi(ptrOP)-10000] = 'C';
+					numNeighbors[0]++;
 					break;
 				case 10003:
 					tableA->otherRouters[atoi(ptrOP)-10000] = 'D';
+					numNeighbors[0]++;
 					break;
 				case 10004:
 					tableA->otherRouters[atoi(ptrOP)-10000] = 'E';
+					numNeighbors[0]++;
 					break;
 				case 10005:
 					tableA->otherRouters[atoi(ptrOP)-10000] = 'F';
+					numNeighbors[0]++;
 					break;
 			}
 			tableA->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
@@ -198,18 +265,23 @@ void initializeFromFile(struct router *tableA, struct router *tableB, struct rou
 			switch (atoi(ptrOP)) {
 				case 10000:
 					tableB->otherRouters[atoi(ptrOP)-10000] = 'A';
+					numNeighbors[1]++;
 					break;
 				case 10002:
 					tableB->otherRouters[atoi(ptrOP)-10000] = 'C';
+					numNeighbors[1]++;
 					break;
 				case 10003:
 					tableB->otherRouters[atoi(ptrOP)-10000] = 'D';
+					numNeighbors[1]++;
 					break;
 				case 10004:
 					tableB->otherRouters[atoi(ptrOP)-10000] = 'E';
+					numNeighbors[1]++;
 					break;
 				case 10005:
 					tableB->otherRouters[atoi(ptrOP)-10000] = 'F';
+					numNeighbors[1]++;
 					break;
 			}
 			tableB->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
@@ -222,18 +294,23 @@ void initializeFromFile(struct router *tableA, struct router *tableB, struct rou
 			switch (atoi(ptrOP)) {
 				case 10000:
 					tableC->otherRouters[atoi(ptrOP)-10000] = 'A';
+					numNeighbors[2]++;
 					break;
 				case 10001:
 					tableC->otherRouters[atoi(ptrOP)-10000] = 'B';
+					numNeighbors[2]++;
 					break;
 				case 10003:
 					tableC->otherRouters[atoi(ptrOP)-10000] = 'D';
+					numNeighbors[2]++;
 					break;
 				case 10004:
 					tableC->otherRouters[atoi(ptrOP)-10000] = 'E';
+					numNeighbors[2]++;
 					break;
 				case 10005:
 					tableC->otherRouters[atoi(ptrOP)-10000] = 'F';
+					numNeighbors[2]++;
 					break;
 			}
 			tableC->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
@@ -246,18 +323,23 @@ void initializeFromFile(struct router *tableA, struct router *tableB, struct rou
 			switch (atoi(ptrOP)) {
 				case 10000:
 					tableD->otherRouters[atoi(ptrOP)-10000] = 'A';
+					numNeighbors[3]++;
 					break;
 				case 10001:
 					tableD->otherRouters[atoi(ptrOP)-10000] = 'B';
+					numNeighbors[3]++;
 					break;
 				case 10002:
 					tableD->otherRouters[atoi(ptrOP)-10000] = 'C';
+					numNeighbors[3]++;
 					break;
 				case 10004:
 					tableD->otherRouters[atoi(ptrOP)-10000] = 'E';
+					numNeighbors[3]++;
 					break;
 				case 10005:
 					tableD->otherRouters[atoi(ptrOP)-10000] = 'F';
+					numNeighbors[3]++;
 					break;
 			}
 			tableD->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
@@ -270,18 +352,23 @@ void initializeFromFile(struct router *tableA, struct router *tableB, struct rou
 			switch (atoi(ptrOP)) {
 				case 10000:
 					tableE->otherRouters[atoi(ptrOP)-10000] = 'A';
+					numNeighbors[4]++;
 					break;
 				case 10001:
 					tableE->otherRouters[atoi(ptrOP)-10000] = 'B';
+					numNeighbors[4]++;
 					break;
 				case 10002:
 					tableE->otherRouters[atoi(ptrOP)-10000] = 'C';
+					numNeighbors[4]++;
 					break;
 				case 10003:
 					tableE->otherRouters[atoi(ptrOP)-10000] = 'D';
+					numNeighbors[4]++;
 					break;
 				case 10005:
 					tableE->otherRouters[atoi(ptrOP)-10000] = 'F';
+					numNeighbors[4]++;
 					break;
 			}
 			tableE->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
@@ -294,18 +381,23 @@ void initializeFromFile(struct router *tableA, struct router *tableB, struct rou
 			switch (atoi(ptrOP)) {
 				case 10000:
 					tableF->otherRouters[atoi(ptrOP)-10000] = 'A';
+					numNeighbors[5]++;
 					break;
 				case 10001:
 					tableF->otherRouters[atoi(ptrOP)-10000] = 'B';
+					numNeighbors[5]++;
 					break;
 				case 10002:
 					tableF->otherRouters[atoi(ptrOP)-10000] = 'C';
+					numNeighbors[5]++;
 					break;
 				case 10003:
 					tableF->otherRouters[atoi(ptrOP)-10000] = 'D';
+					numNeighbors[5]++;
 					break;
 				case 10004:
 					tableF->otherRouters[atoi(ptrOP)-10000] = 'E';
+					numNeighbors[5]++;
 					break;
 			}
 			tableF->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
@@ -313,7 +405,51 @@ void initializeFromFile(struct router *tableA, struct router *tableB, struct rou
 			tableF->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 		}
 	}
-	return;
+
+	int index=0;
+	for (int i=0; i<NUMROUTERS; i++) {
+		if (tableA->costs[i] != INT_MAX && tableA->costs[i] != 0) {
+			neighborMatrix.r[0][index] = i;
+			index++;
+		}
+	}
+	index=0;
+	for (int i=0; i<NUMROUTERS; i++) {
+		if (tableB->costs[i] != INT_MAX && tableB->costs[i] != 0) {
+			neighborMatrix.r[1][index] = i;
+			index++;
+		}
+	}
+	index=0;
+	for (int i=0; i<NUMROUTERS; i++) {
+		if (tableC->costs[i] != INT_MAX && tableC->costs[i] != 0) {
+			neighborMatrix.r[2][index] = i;
+			index++;
+		}
+	}
+	index=0;
+	for (int i=0; i<NUMROUTERS; i++) {
+		if (tableD->costs[i] != INT_MAX && tableD->costs[i] != 0) {
+			neighborMatrix.r[3][index] = i;
+			index++;
+		}
+	}
+	index=0;
+	for (int i=0; i<NUMROUTERS; i++) {
+		if (tableE->costs[i] != INT_MAX && tableE->costs[i] != 0) {
+			neighborMatrix.r[4][index] = i;
+			index++;
+		}
+	}
+	index=0;
+	for (int i=0; i<NUMROUTERS; i++) {
+		if (tableF->costs[i] != INT_MAX && tableF->costs[i] != 0) {
+			neighborMatrix.r[5][index] = i;
+			index++;
+		}
+	}
+	
+	return neighborMatrix;
 }
 
 int main(int argc, char *argv[])
@@ -323,11 +459,10 @@ int main(int argc, char *argv[])
 	struct sockaddr_in serveraddr[2]; /* server's address */
 	struct sockaddr_in clientaddr; /* client's address */
 	struct hostent *hostp; /* client host info */
-	char buf[BUFSIZE]; /* message buffer */
+	unsigned char buf[BUFSIZE]; /* message buffer */
 	char *hostaddrp; /* dotted decimal host address string */
 	int optval; /* flag value for setsockopt */
 	int n; /* message byte size */
-
 	fd_set socks;
 
 	/* for development */
@@ -442,8 +577,7 @@ int main(int argc, char *argv[])
 		{  NULL,     NULL,    NULL,    NULL,    NULL,  ROUTERF  }
 	};
 
-	initializeFromFile(&tableA, &tableB, &tableC, &tableD, &tableE, &tableF);	
-
+	struct matrix neighborMatrix = initializeFromFile(&tableA, &tableB, &tableC, &tableD, &tableE, &tableF);	
 	/* end testing */
 
 	struct router *network = malloc(NUMROUTERS * sizeof(struct router));
@@ -456,118 +590,123 @@ int main(int argc, char *argv[])
 
 	initializeOutputFiles(network);
 
-	// for (int i=0; i<2; i++) {
-	// 	/* create parent socket */
-	// 	if ( (sockfd[i] = socket(AF_INET, SOCK_DGRAM, 0)) < 0 )
-	// 		error("Error opening socket");
+	for (int i=0; i<2; i++) {
+		/* create parent socket */
+		if ( (sockfd[i] = socket(AF_INET, SOCK_DGRAM, 0)) < 0 )
+			error("Error opening socket");
 
-	// 	/* server can be rerun immediately after killed */
-	// 	optval = 1;
-	// 	setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
+		/* server can be rerun immediately after killed */
+		optval = 1;
+		setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
 
-	// 	/* build server's Internet address */
-	// 	bzero((char *) &serveraddr[i], sizeof(serveraddr[i]));
-	// 	serveraddr[i].sin_family = AF_INET;
-	// 	serveraddr[i].sin_addr.s_addr = htonl(INADDR_ANY);
+		/* build server's Internet address */
+		bzero((char *) &serveraddr[i], sizeof(serveraddr[i]));
+		serveraddr[i].sin_family = AF_INET;
+		serveraddr[i].sin_addr.s_addr = htonl(INADDR_ANY);
 
-	// 	switch(i+10000) {
-	// 		case ROUTERA:
-	// 			serveraddr[i].sin_port = htons(ROUTERA);
-	// 			break;
-	// 		case ROUTERB:
-	// 			serveraddr[i].sin_port = htons(ROUTERB);
-	// 			break;
-	// 	}
-	// 	/* bind: associate parent socket with port */
-	// 	if (bind(sockfd[i], (struct sockaddr *) &serveraddr[i], sizeof(serveraddr[i])) < 0)
-	// 		error("Error on binding");
-	// }
+		switch(i+10000) {
+			case ROUTERA:
+				serveraddr[i].sin_port = htons(ROUTERA);
+				break;
+			case ROUTERB:
+				serveraddr[i].sin_port = htons(ROUTERB);
+				break;
+			// case ROUTERC:
+			// 	serveraddr[i].sin_port = htons(ROUTERC);
+			// 	break;
+			// case ROUTERD:
+			// 	serveraddr[i].sin_port = htons(ROUTERD);
+			// 	break;
+			// case ROUTERE:
+			// 	serveraddr[i].sin_port = htons(ROUTERE);
+			// 	break;
+			// case ROUTERF:
+			// 	serveraddr[i].sin_port = htons(ROUTERF);
+			// 	break;
+		}
+		/* bind: associate parent socket with port */
+		if (bind(sockfd[i], (struct sockaddr *) &serveraddr[i], sizeof(serveraddr[i])) < 0)
+			error("Error on binding");
+	}
 
-	// clientlen = sizeof(clientaddr);
+	clientlen = sizeof(clientaddr);
 
-	// int nsocks = max(sockfd[0], sockfd[1]) + 1;
+	/* begin by having ROUTERA send DV to one neighbor */
+	/* for this implementation, ROUTERA will send to ROUTERB */
+	int start;
+	for (int i=0; i<NUMROUTERS; i++) {
+		if (neighborMatrix.r[0][i] != -1) {
+			start = neighborMatrix.r[0][i];
+			break;
+		}
+	}
+	/* in this case, start=1 */
+	// memset(buf, 0, BUFSIZE);
+	// memcpy(buf, &tableA.index, sizeof(tableA.index));
+	// memcpy(buf + sizeof(tableA.index), &tableA.otherRouters, sizeof(tableA.otherRouters));
+	// memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters), &tableA.costs, sizeof(tableA.costs));
+	// memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs), &tableA.outgoingPorts, sizeof(tableA.outgoingPorts));
+	// memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs) + sizeof(tableA.outgoingPorts), &tableA.destinationPorts, sizeof(tableA.destinationPorts));
+	tableToBuffer(&buf, &tableA);
+	n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[start], clientlen);
 
-	// int test=1;
-	// /* loop: wait for datagram, then echo it */
-	// while (test) {
-	// 	FD_ZERO(&socks);
-	// 	FD_SET(sockfd[0], &socks);
-	// 	FD_SET(sockfd[1], &socks);
+	int nsocks = max(sockfd[0], sockfd[1]) + 1;
+	/* loop: wait for datagram, then echo it */
+	while (1) {
+		FD_ZERO(&socks);
+		FD_SET(sockfd[0], &socks);
+		FD_SET(sockfd[1], &socks);
 
-	// 	if (select(nsocks, &socks, NULL, NULL, NULL) < 0) {
-	// 		printf("Error selecting socket\n");
-	// 	} else {
-	// 		/* receives UDP datagram from client */
-	// 		memset(buf, 0, BUFSIZE);
-	// 		if (FD_ISSET(sockfd[0], &socks)) {
-	// 			if ( (n = recvfrom(sockfd[0], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
-	// 				error("Error receiving datagram from client\n");
-	// 			// memset(&buf, 0, BUFSIZE);
-	// 			// memcpy(buf, &tableA, sizeof(struct router));
-				
-	// 			/* receives UDP datagram from client */
-	// 			// hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, sizeof(clientaddr.sin_addr.s_addr), AF_INET);
-	// 			// if (hostp == NULL)
-	// 			// 	error("Error getting host by address");
-	// 			// /* Converts address from network bytes to IPv4 decimal notation string */
-	// 			// hostaddrp = inet_ntoa(clientaddr.sin_addr);
-	// 			// if (hostaddrp == NULL)
-	// 			// 	error ("Error on ntoa");
-	// 			// printf("Router received datagram from Port %d. Datagram sent to Port %d\n", ntohs(clientaddr.sin_port), ntohs(serveraddr[0].sin_port));
-	// 			// printf("Buffer contains %d bytes: %s\n", sizeof(router), buf);
+		if (select(nsocks, &socks, NULL, NULL, NULL) < 0) {
+			printf("Error selecting socket\n");
+		} else {
+			/* receives UDP datagram from client */
+			memset(buf, 0, BUFSIZE);
+			if (FD_ISSET(sockfd[0], &socks)) {
+				if ( (n = recvfrom(sockfd[0], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+					error("Error receiving datagram from client\n");
 
-	// 			struct router *compTable = NULL;
-	// 			// bzero(compTable, BUFSIZE);
-	// 			compTable = malloc(BUFSIZE);
-	// 			memcpy(compTable, buf, sizeof(struct router));
+				struct router *compTable = NULL;
+				compTable = malloc(BUFSIZE);
+				memcpy(compTable, buf, sizeof(struct router));
 
-	// 			updateTable(&tableA, *compTable);
-	// 			free(compTable);
+				updateTable(&tableA, *compTable);
+				free(compTable);
 
-	// 			memset(buf, 0, BUFSIZE);
-	// 			memcpy(buf, &tableA.index, sizeof(tableA.index));
-	// 			memcpy(buf + sizeof(tableA.index), &tableA.otherRouters, sizeof(tableA.otherRouters));
-	// 			memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters), &tableA.costs, sizeof(tableA.costs));
-	// 			memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs), &tableA.outgoingPorts, sizeof(tableA.outgoingPorts));
-	// 			memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs) + sizeof(tableA.outgoingPorts), &tableA.destinationPorts, sizeof(tableA.destinationPorts));
-	// 			/* neighbors determined by outgoing port being the same port */
-	// 			// for (int idx=0; idx<NUMROUTERS; idx++) {
-	// 			// 	if (tableA.outgoingPorts[idx] == ROUTERA && idx != tableA.index) {
-	// 			// 		/* send to neighbors */
-	// 			// 		n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
-	// 			// 		if (n < 0)
-	// 			// 			error("Error sending to client");
-	// 			// 	}
-	// 			// }
+				memset(buf, 0, BUFSIZE);
+				memcpy(buf, &tableA.index, sizeof(tableA.index));
+				memcpy(buf + sizeof(tableA.index), &tableA.otherRouters, sizeof(tableA.otherRouters));
+				memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters), &tableA.costs, sizeof(tableA.costs));
+				memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs), &tableA.outgoingPorts, sizeof(tableA.outgoingPorts));
+				memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs) + sizeof(tableA.outgoingPorts), &tableA.destinationPorts, sizeof(tableA.destinationPorts));
 
+				n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
+				if (n < 0)
+					error("Error sending to client");
+			} else if (FD_ISSET(sockfd[1], &socks)) {
+				if ( (n = recvfrom(sockfd[1], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+					error("Error receiving datagram from client\n");
 
-	// 			n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
+				struct router *compTable = NULL;
+				compTable = malloc(BUFSIZE);
+				memcpy(compTable, buf, sizeof(struct router));
 
-	// 			break;
-	// 		} else if (FD_ISSET(sockfd[1], &socks)) {
-	// 			if ( (n = recvfrom(sockfd[1], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
-	// 				error("Error receiving datagram from client\n");
-	// 			// hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, sizeof(clientaddr.sin_addr.s_addr), AF_INET);
-	// 			// if (hostp == NULL)
-	// 			// 	error("Error getting host by address");
-	// 			// /* Converts address from network bytes to IPv4 decimal notation string */
-	// 			// hostaddrp = inet_ntoa(clientaddr.sin_addr);
-	// 			// if (hostaddrp == NULL)
-	// 			// 	error ("Error on ntoa");
-	// 			// printf("Router received datagram from Port %d. Datagram sent to Port %d\n", ntohs(clientaddr.sin_port), ntohs(serveraddr[1].sin_port));
-	// 			// printf("Router received %d/%d bytes: %s\n", strlen(buf), n, buf);
+				updateTable(&tableB, *compTable);
+				free(compTable);
 
-	// 			memset(&buf, 0, BUFSIZE);
-	// 			memcpy(buf, &tableB, sizeof(struct router));
+				// tableToBuffer(&buf, tableB);
+				// memset(&buf, 0, BUFSIZE);
+				// memcpy(buf, &tableB, sizeof(struct router));
 
-	// 			/* echo input back to client */
-	// 			n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[0], clientlen);
-	// 			if (n < 0)
-	// 				error("Error sending to client");
-	// 		}
-	// 		if (stableState()) {
-	// 			break;
-	// 		}
-	// 	}
-	// }
+				/* echo input back to client */
+				n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[0], clientlen);
+				if (n < 0)
+					error("Error sending to client");
+				break;
+			}
+			if (stableState()) {
+				break;
+			}
+		}
+	}
 }

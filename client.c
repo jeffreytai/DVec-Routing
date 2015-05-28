@@ -35,3 +35,17 @@ int main(int argc, char**argv)
       fputs(recvline,stdout);
    }
 }
+
+// memset(&buf, 0, BUFSIZE);
+// memcpy(buf, &tableA, sizeof(struct router));
+
+/* receives UDP datagram from client */
+// hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, sizeof(clientaddr.sin_addr.s_addr), AF_INET);
+// if (hostp == NULL)
+//    error("Error getting host by address");
+// /* Converts address from network bytes to IPv4 decimal notation string */
+// hostaddrp = inet_ntoa(clientaddr.sin_addr);
+// if (hostaddrp == NULL)
+//    error ("Error on ntoa");
+// printf("Router received datagram from Port %d. Datagram sent to Port %d\n", ntohs(clientaddr.sin_port), ntohs(serveraddr[0].sin_port));
+// printf("Buffer contains %d bytes: %s\n", sizeof(router), buf);
