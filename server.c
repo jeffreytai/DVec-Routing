@@ -72,55 +72,41 @@ bool tablesEqual(struct router *table1, struct router table2) {
 	return true;
 }
 
-void tableToBuffer(char *buf, struct router *table) {
+void tableToBuffer(int *buf, struct router *table) {
 	int currSize=0;
 	memset(buf, 0, BUFSIZE);
+
 	memcpy(buf, &table->index, sizeof(table->index));
+	// printf("%i\n", buf[currSize]);
 	currSize += sizeof(table->index);
-	printf("Table index: %i\n", buf[0]);
-	printf("Size: %i\n", currSize);
 
 	memcpy(buf + currSize, &table->otherRouters, sizeof(table->otherRouters));
+	// char *c = buf+currSize;
+	// for (int i=0; i<NUMROUTERS; i++) {
+	// 	printf("%c\n", c[0]);
+	// 	c++;
+	// }
 	currSize += sizeof(table->otherRouters);
-	printf("Other routers: ");
-	for (int i=0; i<NUMROUTERS; i++) {
-		printf("%c ", buf[sizeof(int)+i]);
-	}
-	printf("\nSize: %i\n", currSize);
 
 	memcpy(buf + currSize, &table->costs, sizeof(table->costs));
+	// for (int i=0; i<NUMROUTERS; i++) {
+	// 	printf("%i\n", buf[currSize+i]);
+	// }
 	currSize += sizeof(table->costs);
-	printf("Costs: ");
-	for (int i=0; i<NUMROUTERS; i++) {
-		printf("%i ", buf[sizeof(int)+6+4*i]);
-	}
-	printf("\nSize: %i\n", currSize);
 
-	memcpy(buf + currSize, &table->outgoingPorts[0], sizeof(table->outgoingPorts[0]));
-	printf("Outgoing port: %s\n", buf + currSize);
+	memcpy(buf + currSize, &table->outgoingPorts, sizeof(table->outgoingPorts));
 	// for (int i=0; i<NUMROUTERS; i++) {
-	// 	memcpy(buf + currSize, &table->outgoingPorts[i], sizeof(table->outgoingPorts[i]));
-	// 	currSize += sizeof(table->outgoingPorts[i]);
-	// 	printf("Element: %i ", buf[currSize-1+4*i]);
-	// 	printf("Curr size: %i\n", currSize);
+	// 	printf("%i\n", buf[currSize+i]);
 	// }
-	// memcpy(buf + currSize, &table->outgoingPorts, sizeof(table->outgoingPorts));
-	// currSize += sizeof(table->outgoingPorts);
-	// printf("Outgoing ports: ");
+	currSize += sizeof(table->outgoingPorts);
+
+	memcpy(buf + currSize, &table->destinationPorts, sizeof(table->destinationPorts));
 	// for (int i=0; i<NUMROUTERS; i++) {
-	// 	printf("%i ", buf[sizeof(int)+30+i]);
+	// 	printf("%i\n", buf[currSize+i]);
 	// }
-	// printf("\nSize: %i\n", currSize);
-
-	// int x = 10000;
-	// printf("Val: %d\n", x);
-
-	// memcpy(buf + sizeof(table->index), &table->otherRouters, sizeof(table->otherRouters));
-	// memcpy(buf + sizeof(table->index) + sizeof(table->otherRouters), &table->costs, sizeof(table->costs));
-	// memcpy(buf + sizeof(table->index) + sizeof(table->otherRouters) + sizeof(table->costs), &table->outgoingPorts, sizeof(table->outgoingPorts));
-	// memcpy(buf + sizeof(table->index) + sizeof(table->otherRouters) + sizeof(table->costs) + sizeof(table->outgoingPorts), &table->destinationPorts, sizeof(table->destinationPorts));	
-
 }
+
+
 
 void outputTable(struct router *table) {
 	FILE *f = NULL;
@@ -459,7 +445,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in serveraddr[2]; /* server's address */
 	struct sockaddr_in clientaddr; /* client's address */
 	struct hostent *hostp; /* client host info */
-	unsigned char buf[BUFSIZE]; /* message buffer */
+	int buf[BUFSIZE]; /* message buffer */
 	char *hostaddrp; /* dotted decimal host address string */
 	int optval; /* flag value for setsockopt */
 	int n; /* message byte size */
@@ -648,6 +634,9 @@ int main(int argc, char *argv[])
 	// memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs), &tableA.outgoingPorts, sizeof(tableA.outgoingPorts));
 	// memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs) + sizeof(tableA.outgoingPorts), &tableA.destinationPorts, sizeof(tableA.destinationPorts));
 	tableToBuffer(&buf, &tableA);
+
+
+
 	n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[start], clientlen);
 
 	int nsocks = max(sockfd[0], sockfd[1]) + 1;
