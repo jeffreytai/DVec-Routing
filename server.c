@@ -472,9 +472,9 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 
 int main(int argc, char *argv[])
 {
-	int sockfd[2]; /* socket */
+	int sockfd[6]; /* socket */
 	int clientlen; /* byte size of client's address */
-	struct sockaddr_in serveraddr[2]; /* server's address */
+	struct sockaddr_in serveraddr[6]; /* server's address */
 	struct sockaddr_in clientaddr; /* client's address */
 	struct hostent *hostp; /* client host info */
 	int buf[BUFSIZE]; /* message buffer */
@@ -607,7 +607,7 @@ int main(int argc, char *argv[])
 
 	initializeOutputFiles(network);
 
-	for (int i=0; i<2; i++) {
+	for (int i=0; i<NUMROUTERS; i++) {
 		/* create parent socket */
 		if ( (sockfd[i] = socket(AF_INET, SOCK_DGRAM, 0)) < 0 )
 			error("Error opening socket");
@@ -628,18 +628,18 @@ int main(int argc, char *argv[])
 			case ROUTERB:
 				serveraddr[i].sin_port = htons(ROUTERB);
 				break;
-			// case ROUTERC:
-			// 	serveraddr[i].sin_port = htons(ROUTERC);
-			// 	break;
-			// case ROUTERD:
-			// 	serveraddr[i].sin_port = htons(ROUTERD);
-			// 	break;
-			// case ROUTERE:
-			// 	serveraddr[i].sin_port = htons(ROUTERE);
-			// 	break;
-			// case ROUTERF:
-			// 	serveraddr[i].sin_port = htons(ROUTERF);
-			// 	break;
+			case ROUTERC:
+				serveraddr[i].sin_port = htons(ROUTERC);
+				break;
+			case ROUTERD:
+				serveraddr[i].sin_port = htons(ROUTERD);
+				break;
+			case ROUTERE:
+				serveraddr[i].sin_port = htons(ROUTERE);
+				break;
+			case ROUTERF:
+				serveraddr[i].sin_port = htons(ROUTERF);
+				break;
 		}
 		/* bind: associate parent socket with port */
 		if (bind(sockfd[i], (struct sockaddr *) &serveraddr[i], sizeof(serveraddr[i])) < 0)
@@ -658,23 +658,25 @@ int main(int argc, char *argv[])
 		}
 	}
 	/* in this case, start=1 */
-	// memset(buf, 0, BUFSIZE);
-	// memcpy(buf, &tableA.index, sizeof(tableA.index));
-	// memcpy(buf + sizeof(tableA.index), &tableA.otherRouters, sizeof(tableA.otherRouters));
-	// memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters), &tableA.costs, sizeof(tableA.costs));
-	// memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs), &tableA.outgoingPorts, sizeof(tableA.outgoingPorts));
-	// memcpy(buf + sizeof(tableA.index) + sizeof(tableA.otherRouters) + sizeof(tableA.costs) + sizeof(tableA.outgoingPorts), &tableA.destinationPorts, sizeof(tableA.destinationPorts));
 	tableToBuffer(&tableA, &buf);
 	n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[start], clientlen);
 
-	int nsocks = max(sockfd[0], sockfd[1]) + 1;
+	int nsocks = max(sockfd[0], sockfd[1]);
+	for (int i=2; i<6; i++) {
+		nsocks = max(nsocks, sockfd[i]);
+	}
+
 	/* loop: wait for datagram, then echo it */
 	while (1) {
 		FD_ZERO(&socks);
-		FD_SET(sockfd[0], &socks);
-		FD_SET(sockfd[1], &socks);
+		for (int i=0; i<6; i++) {
+			FD_SET(sockfd[i], &socks);
+		}
+		// FD_SET(sockfd[0], &socks);
+		// FD_SET(sockfd[1], &socks);
+		// FD_SET(sockfd[2], &socks);
 
-		if (select(nsocks, &socks, NULL, NULL, NULL) < 0) {
+		if (select(nsocks+1, &socks, NULL, NULL, NULL) < 0) {
 			printf("Error selecting socket\n");
 		} else {
 			/* receives UDP datagram from client */
@@ -683,33 +685,121 @@ int main(int argc, char *argv[])
 				if ( (n = recvfrom(sockfd[0], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
 
-				struct router *compTable = NULL;
-				compTable = malloc(BUFSIZE);
-				memcpy(compTable, buf, sizeof(struct router));
+				struct router compTable;
 
-				updateTable(&tableA, *compTable);
-				free(compTable);
+				bufferToTable(&buf, &compTable);
+				updateTable(&tableA, compTable);
+				tableToBuffer(&tableA, &buf);
 
-				n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
+				for (int i=0; i<NUMROUTERS; i++) {
+					if (neighborMatrix.r[0][i] != -1)
+						n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[0][i]], clientlen);
+				}
+				// n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
 				if (n < 0)
 					error("Error sending to client");
+				break;
 			} else if (FD_ISSET(sockfd[1], &socks)) {
 				if ( (n = recvfrom(sockfd[1], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
 
-				struct router *compTable = NULL;
-				compTable = malloc(BUFSIZE);
+				struct router compTable;
+
 				bufferToTable(&buf, &compTable);
-				// memcpy(compTable, buf, sizeof(struct router));
+				updateTable(&tableB, compTable);
+				tableToBuffer(&tableB, &buf);
 
-				// updateTable(&tableB, *compTable);
-				// free(compTable);
-
-				/* echo input back to client */
 				n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[0], clientlen);
-				if (n < 0)
-					error("Error sending to client");
+				n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[2], clientlen);
+				// n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[4], clientlen);
+				// n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[5], clientlen);
+				// for (int i=0; i<NUMROUTERS; i++) {
+				// 	if (neighborMatrix.r[1][i] != -1) {
+				// 		n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[1][i]], clientlen);
+				// 		if (n < 0)
+				// 			error("Error sending to client");
+				// 	}
+				// }
+				// n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[0], clientlen);
+			} else if (FD_ISSET(sockfd[2], &socks)) {
+				if ( (n = recvfrom(sockfd[2], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+					error("Error receiving datagram from client\n");
+
+				struct router compTable;
+
+				bufferToTable(&buf, &compTable);
+				updateTable(&tableC, compTable);
+				tableToBuffer(&tableC, &buf);
+
+				// for (int i=0; i<NUMROUTERS; i++) {
+				// 	if (neighborMatrix.r[2][i] != -1) {
+				// 		n = sendto(sockfd[2], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[2][i]], clientlen);
+				// 		if (n < 0)
+				// 			error("Error sending to client");
+				// 	}
+				// }
+				// n = sendto(sockfd[2], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
 				break;
+			} else if (FD_ISSET(sockfd[3], &socks)) {
+				if ( (n = recvfrom(sockfd[3], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+					error("Error receiving datagram from client\n");
+
+				struct router compTable;
+
+				bufferToTable(&buf, &compTable);
+				updateTable(&tableD, compTable);
+				tableToBuffer(&tableD, &buf);
+				
+				// for (int i=0; i<NUMROUTERS; i++) {
+				// 	if (neighborMatrix.r[3][i] != -1) {
+				// 		n = sendto(sockfd[3], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[3][i]], clientlen);
+				// 		if (n < 0)
+				// 			error("Error sending to client");
+				// 	}
+				// }
+				// n = sendto(sockfd[3], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[2], clientlen);
+				// if (n < 0)
+				// 	error("Error sending to client");
+			} else if (FD_ISSET(sockfd[4], &socks)) {
+				if ( (n = recvfrom(sockfd[4], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+					error("Error receiving datagram from client\n");
+
+				struct router compTable;
+
+				bufferToTable(&buf, &compTable);
+				updateTable(&tableE, compTable);
+				tableToBuffer(&tableE, &buf);
+
+				// for (int i=0; i<NUMROUTERS; i++) {
+				// 	if (neighborMatrix.r[4][i] != -1) {
+				// 		n = sendto(sockfd[4], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[4][i]], clientlen);
+				// 		if (n < 0)
+				// 			error("Error sending to client");
+				// 	}
+				// }
+				// n = sendto(sockfd[4], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
+				// if (n < 0)
+				// 	error("Error sending to client");
+			} else if (FD_ISSET(sockfd[5], &socks)) {
+				if ( (n = recvfrom(sockfd[5], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+					error("Error receiving datagram from client\n");
+
+				struct router compTable;
+
+				bufferToTable(&buf, &compTable);
+				updateTable(&tableF, compTable);
+				tableToBuffer(&tableF, &buf);
+
+				// for (int i=0; i<NUMROUTERS; i++) {
+				// 	if (neighborMatrix.r[5][i] != -1) {
+				// 		n = sendto(sockfd[5], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[5][i]], clientlen);
+				// 		if (n < 0)
+				// 			error("Error sending to client");
+				// 	}
+				// }
+				// n = sendto(sockfd[5], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[2], clientlen);
+				// if (n < 0)
+				// 	error("Error sending to client");
 			}
 			if (stableState()) {
 				break;
