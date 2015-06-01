@@ -22,3 +22,6 @@ I. Implementation
 II. Challenges
 
 Difficulties faced, and how we overcame.
+
+- routers sending DV (in buffer form) to multiple sockets
+- ...
