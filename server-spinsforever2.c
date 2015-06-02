@@ -265,32 +265,32 @@ void updateTable(struct router *currTable, struct router rcvdTable) {
 	int i;
 	for (i=0; i<NUMROUTERS; i++) {
 		// ignore own entry in table
-		printf("update%d1\n", i);
+		//printf("update%d1\n", i);
 		if (i != currTable->index) {
-			printf("update%d2\n", i);
+			//printf("update%d2\n", i);
 			// find shortest paths to other routers
 			if (rcvdTable.costs[i] == INT_MAX) {
-				printf("update%d3\n", i);
+				//printf("update%d3\n", i);
 				continue;
 			} else if ( currTable->costs[i] > rcvdTable.costs[i] + currTable->costs[rcvdTable.index] ) {
-				printf("update%d4\n", i);
+				//printf("update%d4\n", i);
 				currTable->otherRouters[i] = rcvdTable.otherRouters[i];
-		printf("update%d5\n", i);
+		//printf("update%d5\n", i);
 				currTable->costs[i] = rcvdTable.costs[i] + currTable->costs[rcvdTable.index];
-		printf("update%d6\n", i);
+		//printf("update%d6\n", i);
 				currTable->outgoingPorts[i] = rcvdTable.index + 10000;
-		printf("update%d7\n", i);
+		//printf("update%d7\n", i);
 				currTable->destinationPorts[i] = rcvdTable.destinationPorts[i];
-		printf("update%d8\n", i);
+		//printf("update%d8\n", i);
 				isChanged = true;
 			}
 		}
 	}
 	if (isChanged) {
-		printf("updateoutput\n", i);
+	//	printf("updateoutput\n", i);
 		outputTable(currTable);
 	}
-	printf("out\n");
+	//printf("out\n");
 	return;
 }
 
@@ -804,35 +804,36 @@ int main(int argc, char *argv[])
 
 	/* loop: wait for datagram, then echo it */
 	while (1) {
-		printf("iterate while\n\n");
+		printf("\n\n### Starting next iteration of while loop ###\n\n");
 		FD_ZERO(&socks);
 		for (i=0; i<NUMROUTERS; i++) {
 			FD_SET(sockfd[i], &socks);
 		}
 		
-		printf("1\n");
-		
 		if (select(nsocks+1, &socks, NULL, NULL, NULL) < 0) {
 			printf("Error selecting socket\n");
 		} else {
-			
-			printf("2\n");
 			/* receives UDP datagram from client */
 			memset(buf, 0, BUFSIZE);
-			printf("3\n");
 			if (FD_ISSET(sockfd[0], &socks)) {
-				printf("4\n");
 				if ( (n = recvfrom(sockfd[0], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
 
 				struct router compTable;
-
 				bufferToTable(&buf, &compTable);
-				printf("5\n");
+
+				printf("Received table:\n");
+				printRouter(&compTable);
+				printf("A's original table:\n");
+				printRouter(&tableA);
+
 				updateTable(&tableA, compTable);
-				printf("6\n");
+
+				printf("A's updated table:\n");
+				printRouter(&tableA);
+
 				tableToBuffer(&tableA, &buf);
-				printf("7\n");
+
 				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[0][i] != -1) {
 						n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[0][i]], clientlen);
@@ -855,16 +856,24 @@ int main(int argc, char *argv[])
 				}
 
 				struct router compTable;
+/*
 				printBuffer(buf);
 				printf("%d %d\n\n\n", sizeof(buf), sizeof(compTable));
+*/
+				
 				bufferToTable(&buf, &compTable);
-				printRouter(&compTable);
 
-				printf("9\n");
+				printf("Received table:\n");
+				printRouter(&compTable);
+				printf("B's original table:\n");
+				printRouter(&tableB);
+
 				updateTable(&tableB, compTable);
-				printf("10\n");
+
+				printf("B's updated table:\n");
+				printRouter(&tableB);
+
 				tableToBuffer(&tableB, &buf);
-				printf("11\n");
 
 				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[1][i] != -1) {
@@ -886,7 +895,17 @@ int main(int argc, char *argv[])
 				struct router compTable;
 
 				bufferToTable(&buf, &compTable);
+
+				printf("Received table:\n");
+				printRouter(&compTable);
+				printf("C's original table:\n");
+				printRouter(&tableC);
+
 				updateTable(&tableC, compTable);
+
+				printf("C's updated table:\n");
+				printRouter(&tableC);
+
 				tableToBuffer(&tableC, &buf);
 
 				for (i=0; i<NUMROUTERS; i++) {
@@ -908,7 +927,17 @@ int main(int argc, char *argv[])
 				struct router compTable;
 
 				bufferToTable(&buf, &compTable);
+
+				printf("Received table:\n");
+				printRouter(&compTable);
+				printf("D's original table:\n");
+				printRouter(&tableD);
+
 				updateTable(&tableD, compTable);
+
+				printf("D's updated table:\n");
+				printRouter(&tableD);
+
 				tableToBuffer(&tableD, &buf);
 				
 				for (i=0; i<NUMROUTERS; i++) {
@@ -932,7 +961,17 @@ int main(int argc, char *argv[])
 				struct router compTable;
 
 				bufferToTable(&buf, &compTable);
+
+				printf("Received table:\n");
+				printRouter(&compTable);
+				printf("E's original table:\n");
+				printRouter(&tableE);
+
 				updateTable(&tableE, compTable);
+
+				printf("E's updated table:\n");
+				printRouter(&tableE);
+
 				tableToBuffer(&tableE, &buf);
 
 				for (i=0; i<NUMROUTERS; i++) {
@@ -955,7 +994,17 @@ int main(int argc, char *argv[])
 				struct router compTable;
 
 				bufferToTable(&buf, &compTable);
+
+				printf("Received table:\n");
+				printRouter(&compTable);
+				printf("F's original table:\n");
+				printRouter(&tableF);
+
 				updateTable(&tableF, compTable);
+
+				printf("F's updated table:\n");
+				printRouter(&tableF);
+
 				tableToBuffer(&tableF, &buf);
 
 				for (i=0; i<NUMROUTERS; i++) {
