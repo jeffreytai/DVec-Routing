@@ -73,7 +73,27 @@ bool tablesEqual(struct router *table1, struct router table2) {
 	return true;
 }
 
+/* tableToBuffer()
+ *
+ * Converts a router struct representation into an int buffer representation of a router.
+ */
 void tableToBuffer(struct router *table, int *buf) {
+	
+	int offset = 0;
+	buf[offset] = table->index;
+	offset++;
+
+	int i;
+	for (i = 0; i < NUMROUTERS; i++)
+	{
+		buf[offset + 0*NUMROUTERS] = (int) table->otherRouters[i];
+		buf[offset + 1*NUMROUTERS] = table->costs[i];
+		buf[offset + 2*NUMROUTERS] = table->outgoingPorts[i];
+		buf[offset + 3*NUMROUTERS] = table->destinationPorts[i];
+		offset++;
+	}
+	
+/*
 	int currSize=0;
 	memset(buf, 0, BUFSIZE);
 
@@ -105,9 +125,32 @@ void tableToBuffer(struct router *table, int *buf) {
 	// for (int i=0; i<NUMROUTERS; i++) {
 	// 	printf("%i\n", buf[currSize+i]);
 	// }
+*/
 }
 
+/* bufferToTable()
+ *
+ * Converts an integer array representation into a struct representation of a router.
+ */
 void bufferToTable(int *buf, struct router *table) {
+	
+	int offset = 0;
+	// set table->index
+	table->index = buf[offset];
+	offset++;
+
+	// set char otherRouters[6]
+	int i;
+	for (i = 0; i < NUMROUTERS; i++)
+	{
+		table->otherRouters[i] = (char) buf[offset + 0*NUMROUTERS];
+		table->costs[i] =		buf[offset + 1*NUMROUTERS];
+		table->outgoingPorts[i] =	buf[offset + 2*NUMROUTERS];
+		table->destinationPorts[i] =	buf[offset + 3*NUMROUTERS];
+		offset++;
+	}
+	
+/*
 	int currSize=0;
 	memset(table, 0, BUFSIZE);
 
@@ -139,6 +182,7 @@ void bufferToTable(int *buf, struct router *table) {
 	// for (int i=0; i<NUMROUTERS; i++) {
 	// 	printf("%i\n", table->destinationPorts[i]);
 	// }
+*/
 }
 
 void outputTable(struct router *table) {
