@@ -61,7 +61,8 @@ bool stableState() {
 
 /* currently unused */
 bool tablesEqual(struct router *table1, struct router table2) {
-	for (int idx=0; idx<NUMROUTERS; idx++) {
+	int idx;
+	for (idx=0; idx<NUMROUTERS; idx++) {
 		if (
 			(table1->otherRouters[idx] != table2.otherRouters[idx])
 			|| (table1->costs[idx] != table2.costs[idx])
@@ -167,7 +168,8 @@ void outputTable(struct router *table) {
     fprintf(f, "\nTimestamp: %s\n",asctime( localtime(&ltime) ) );
 
     fprintf(f, "Destination, Cost, Outgoing Port, Destination Port\n");
-    for (int i=0; i<NUMROUTERS; i++) {
+	int i;
+    for (i=0; i<NUMROUTERS; i++) {
     	fprintf(f, "%c %i %i %i\n",
     		table->otherRouters[i],
     		table->costs[i],
@@ -180,7 +182,8 @@ void outputTable(struct router *table) {
 /* updates table if possible. if table is changed, output to file */
 void updateTable(struct router *currTable, struct router rcvdTable) {
 	bool isChanged = false;
-	for (int i=0; i<NUMROUTERS; i++) {
+	int i;
+	for (i=0; i<NUMROUTERS; i++) {
 		// ignore own entry in table
 		if (i != currTable->index) {
 			// find shortest paths to other routers
@@ -221,7 +224,8 @@ void initializeOutputFiles(struct router *network) {
 	    fprintf(f, "Timestamp: %s\n",asctime( localtime(&ltime) ) );
 		
 		fprintf(f, "Destination, Cost, Outgoing Port, Destination Port\n");
-	    for (int i=0; i<NUMROUTERS; i++) {
+		int i;
+	    for (i=0; i<NUMROUTERS; i++) {
 	    	fprintf(f, "%c %i %i %i\n",
 	    		network[tableIndex].otherRouters[i],
 	    		network[tableIndex].costs[i],
@@ -425,42 +429,43 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 	}
 
 	int index=0;
-	for (int i=0; i<NUMROUTERS; i++) {
+	int i;
+	for (i=0; i<NUMROUTERS; i++) {
 		if (tableA->costs[i] != INT_MAX && tableA->costs[i] != 0) {
 			neighborMatrix.r[0][index] = i;
 			index++;
 		}
 	}
 	index=0;
-	for (int i=0; i<NUMROUTERS; i++) {
+	for (i=0; i<NUMROUTERS; i++) {
 		if (tableB->costs[i] != INT_MAX && tableB->costs[i] != 0) {
 			neighborMatrix.r[1][index] = i;
 			index++;
 		}
 	}
 	index=0;
-	for (int i=0; i<NUMROUTERS; i++) {
+	for (i=0; i<NUMROUTERS; i++) {
 		if (tableC->costs[i] != INT_MAX && tableC->costs[i] != 0) {
 			neighborMatrix.r[2][index] = i;
 			index++;
 		}
 	}
 	index=0;
-	for (int i=0; i<NUMROUTERS; i++) {
+	for (i=0; i<NUMROUTERS; i++) {
 		if (tableD->costs[i] != INT_MAX && tableD->costs[i] != 0) {
 			neighborMatrix.r[3][index] = i;
 			index++;
 		}
 	}
 	index=0;
-	for (int i=0; i<NUMROUTERS; i++) {
+	for (i=0; i<NUMROUTERS; i++) {
 		if (tableE->costs[i] != INT_MAX && tableE->costs[i] != 0) {
 			neighborMatrix.r[4][index] = i;
 			index++;
 		}
 	}
 	index=0;
-	for (int i=0; i<NUMROUTERS; i++) {
+	for (i=0; i<NUMROUTERS; i++) {
 		if (tableF->costs[i] != INT_MAX && tableF->costs[i] != 0) {
 			neighborMatrix.r[5][index] = i;
 			index++;
@@ -591,8 +596,8 @@ int main(int argc, char *argv[])
 	network[5] = tableF;
 
 	initializeOutputFiles(network);
-
-	for (int i=0; i<NUMROUTERS; i++) {
+	int i;
+	for (i=0; i<NUMROUTERS; i++) {
 		/* create parent socket */
 		if ( (sockfd[i] = socket(AF_INET, SOCK_DGRAM, 0)) < 0 )
 			error("Error opening socket");
@@ -637,7 +642,7 @@ int main(int argc, char *argv[])
 	/* begin by having ROUTERA send DV to one neighbor */
 	/* for this implementation, ROUTERA will send to ROUTERB */
 	int start;
-	for (int i=0; i<NUMROUTERS; i++) {
+	for (i=0; i<NUMROUTERS; i++) {
 		if (neighborMatrix.r[0][i] != -1) {
 			start = neighborMatrix.r[0][i];
 			break;
@@ -648,14 +653,14 @@ int main(int argc, char *argv[])
 	n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[start], clientlen);
 
 	int nsocks = max(sockfd[0], sockfd[1]);
-	for (int i=2; i<6; i++) {
+	for (i=2; i<6; i++) {
 		nsocks = max(nsocks, sockfd[i]);
 	}
 
 	/* loop: wait for datagram, then echo it */
 	while (1) {
 		FD_ZERO(&socks);
-		for (int i=0; i<NUMROUTERS; i++) {
+		for (i=0; i<NUMROUTERS; i++) {
 			FD_SET(sockfd[i], &socks);
 		}
 
@@ -673,7 +678,7 @@ int main(int argc, char *argv[])
 				bufferToTable(&buf, &compTable);
 				updateTable(&tableA, compTable);
 				tableToBuffer(&tableA, &buf);
-				for (int i=0; i<NUMROUTERS; i++) {
+				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[0][i] != -1) {
 						n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[0][i]], clientlen);
 						if (n < 0)
@@ -693,7 +698,7 @@ int main(int argc, char *argv[])
 				updateTable(&tableB, compTable);
 				tableToBuffer(&tableB, &buf);
 
-				for (int i=0; i<NUMROUTERS; i++) {
+				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[1][i] != -1) {
 						n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[1][i]], clientlen);
 						if (n < 0)
@@ -712,7 +717,7 @@ int main(int argc, char *argv[])
 				updateTable(&tableC, compTable);
 				tableToBuffer(&tableC, &buf);
 
-				for (int i=0; i<NUMROUTERS; i++) {
+				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[2][i] != -1) {
 						n = sendto(sockfd[2], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[2][i]], clientlen);
 						if (n < 0)
@@ -732,7 +737,7 @@ int main(int argc, char *argv[])
 				updateTable(&tableD, compTable);
 				tableToBuffer(&tableD, &buf);
 				
-				for (int i=0; i<NUMROUTERS; i++) {
+				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[3][i] != -1) {
 						n = sendto(sockfd[3], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[3][i]], clientlen);
 						if (n < 0)
@@ -754,7 +759,7 @@ int main(int argc, char *argv[])
 				updateTable(&tableE, compTable);
 				tableToBuffer(&tableE, &buf);
 
-				for (int i=0; i<NUMROUTERS; i++) {
+				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[4][i] != -1) {
 						n = sendto(sockfd[4], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[4][i]], clientlen);
 						if (n < 0)
@@ -775,7 +780,7 @@ int main(int argc, char *argv[])
 				updateTable(&tableF, compTable);
 				tableToBuffer(&tableF, &buf);
 
-				for (int i=0; i<NUMROUTERS; i++) {
+				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[5][i] != -1) {
 						n = sendto(sockfd[5], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[5][i]], clientlen);
 						if (n < 0)
