@@ -646,8 +646,6 @@ int main(int argc, char *argv[])
 	/* in this case, start=1 */
 	tableToBuffer(&tableA, &buf);
 	n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[start], clientlen);
-	printf("Server len: %i\n", serverlen);
-	printf("Client len addr: %i, Server len addr: %i\n", &clientlen, &serverlen);
 
 	int nsocks = max(sockfd[0], sockfd[1]);
 	for (int i=2; i<6; i++) {
