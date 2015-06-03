@@ -10,6 +10,7 @@
 #include <netdb.h>
 #include <stdbool.h> /* boolean */
 #include <limits.h> /* INT_MAX */
+#include <ctype.h>
 
 #include <sys/time.h>   /* For FD_SET, FD_SELECT */
 #include <sys/select.h>
@@ -40,8 +41,8 @@ struct packet
 	char message[50];
 	char srcNode;
 	char dstNode;
-	int arrivalPort[5];
-	int forwardingPort[5];
+	int arrivalPort;
+	int forwardingPort;
 };
 
 // struct node is size 84
@@ -204,36 +205,22 @@ void outputTable(struct router *table, bool isStable) {
     return;
 }
 
-/* updateTable()
+/* getDestPortIndex()
  *
- * Updates table if possible. If table is changed, output to file.
+ * Returns the index of the portno in the table's destination array
  */
-bool updateTable(struct router *currTable, struct router rcvdTable) {
-	bool isChanged = false;
+int getDestPortIndex(struct router* table, int portno) {
 	int i;
 	for (i=0; i<NUMROUTERS; i++) {
-		// ignore own entry in table
-		if (i != currTable->index) {
-			// find shortest paths to other routers
-			if (rcvdTable.costs[i] == INT_MAX) {
-				continue;
-			} else if ( currTable->costs[i] > rcvdTable.costs[i] + currTable->costs[rcvdTable.index] ) {
-
-				currTable->otherRouters[i] = rcvdTable.otherRouters[i];
-				currTable->costs[i] = rcvdTable.costs[i] + currTable->costs[rcvdTable.index];
-				currTable->outgoingPorts[i] = rcvdTable.index + 10000;
-				currTable->destinationPorts[i] = rcvdTable.destinationPorts[i];
-
-				isChanged = true;
-			}
-		}
+		if (table->destinationPorts[i] == portno)
+			return i;
 	}
-	if (isChanged) {
-		outputTable(currTable, false);
-	}
-	return isChanged;
 }
 
+/* routerToPort()
+ *
+ * Returns the Router PORTNO given the name
+ */
 int routerToPort(char r) {
 	switch (r)
 	{
@@ -264,6 +251,152 @@ int routerToPort(char r) {
 	}
 }
 
+/* portToRouter()
+ *
+ * Returns the router name given the port
+ */
+char portToRouter(int portno) {
+	switch (portno)
+	{
+		case ROUTERA:
+			return 'A';
+			break;
+		case ROUTERB:
+			return 'B';
+			break;
+		case ROUTERC:
+			return 'C';
+			break;
+		case ROUTERD:
+			return 'D';
+			break;
+		case ROUTERE:
+			return 'E';
+			break;
+		case ROUTERF:
+			return 'F';
+			break;
+	}
+}
+
+/* tableName()
+ *
+ * Returns the name of the table given the DV
+ */
+char tableName(struct router* table) {
+	int i;
+	for (i=0; i<NUMROUTERS; i++) {
+		if (table->costs[i] == 0) {
+			switch(i)
+			{
+				case 0:
+					return 'A';
+					break;
+				case 1:
+					return 'B';
+					break;
+				case 2:
+					return 'C';
+					break;
+				case 3:
+					return 'D';
+					break;
+				case 4:
+					return 'E';
+					break;
+				case 5:
+					return 'F';
+					break;
+			}
+		}
+	}
+}
+
+/* updateTable()
+ *
+ * Updates table if possible. If table is changed, output to file.
+ */
+bool updateTable(struct router *currTable, struct router rcvdTable) {
+	bool isChanged = false;
+	int i;
+	for (i=0; i<NUMROUTERS; i++) {
+		// ignore own entry in table
+		if (i != currTable->index) {
+			// find shortest paths to other routers
+			if (rcvdTable.costs[i] == INT_MAX) {
+				continue;
+			} else if ( currTable->costs[i] > rcvdTable.costs[i] + currTable->costs[rcvdTable.index] ) {
+
+				currTable->otherRouters[i] = rcvdTable.otherRouters[i];
+				currTable->costs[i] = rcvdTable.costs[i] + currTable->costs[rcvdTable.index];
+				currTable->outgoingPorts[i] = rcvdTable.index + 10000;
+				currTable->destinationPorts[i] = rcvdTable.destinationPorts[i];
+
+				isChanged = true;
+			}
+		}
+	}
+	if (isChanged) {
+		outputTable(currTable, false);
+	}
+	return isChanged;
+}
+
+/* outputPacket()
+ *
+ * Writes packet info to the router output file 
+ */
+void outputPacket(struct router *table, struct packet *p, bool isDestination) {
+	// write to output timestamp, src node, dst node, arrival UDP port, and outgoing UDP port
+	FILE *f = NULL;
+    int timeBufferSize = 64;
+    char timeBuffer[timeBufferSize];
+
+	switch (table->index) {
+		case INDEXA:
+			f = fopen("routing-outputA.txt", "a");
+			break;
+		case INDEXB:
+			f = fopen("routing-outputB.txt", "a");
+			break;
+		case INDEXC:
+			f = fopen("routing-outputC.txt", "a");
+			break;
+		case INDEXD:
+			f = fopen("routing-outputD.txt", "a");
+			break;
+		case INDEXE:
+			f = fopen("routing-outputE.txt", "a");
+			break;
+		case INDEXF:
+			f = fopen("routing-outputF.txt", "a");
+			break;
+	}
+
+	time_t ltime;
+    struct tm* timeinfo;
+
+    time(&ltime);
+    timeinfo = localtime(&ltime);
+    snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+
+    if (!isDestination) {
+	    int destIndex;
+	    char tname;
+
+	    destIndex = getDestPortIndex(table, routerToPort(p->dstNode));
+	    tname = tableName(table);
+
+	    fprintf(f, "\nReceived data packet:\nTimestamp: %s\nSource Node: %c\nDestination Node: %c\nArrival UDP Port: %i\nOutgoing UDP Port: %i\n", timeBuffer, p->srcNode, p->dstNode, routerToPort(tname), table->outgoingPorts[destIndex]);
+	} else {
+		fprintf(f, "\nCumulative information about data packet:\nTimestamp: %s\nMessage: %s\nSource Node: %c\nDestination Node: %c\nArrival (Destination) UDP Port: %i\n", timeBuffer, p->message, p->srcNode, p->dstNode, routerToPort(p->dstNode));
+	}
+}
+
+/* routerToTable()
+ *
+ * Returns the DV given the router name
+ */
 struct router* routerToTable(struct router** network, char r) {
 	switch(r)
 	{
@@ -294,52 +427,57 @@ struct router* routerToTable(struct router** network, char r) {
 	}
 }
 
-void forwardPacket(struct packet *p) {
-	// int destPort = buf[1];
-	// int index = currTable->index;
-	// int sourceIndex = sourceTable->index;
-	// FILE *f = NULL;
- //        int timeBufferSize = 64;
- //        char timeBuffer[timeBufferSize];
-	// switch (table->index) {
-	// 	case INDEXA:
-	// 		f = fopen("routing-outputA.txt", "a");
-	// 		break;
-	// 	case INDEXB:
-	// 		f = fopen("routing-outputB.txt", "a");
-	// 		break;
-	// 	case INDEXC:
-	// 		f = fopen("routing-outputC.txt", "a");
-	// 		break;
-	// 	case INDEXD:
-	// 		f = fopen("routing-outputD.txt", "a");
-	// 		break;
-	// 	case INDEXE:
-	// 		f = fopen("routing-outputE.txt", "a");
-	// 		break;
-	// 	case INDEXF:
-	// 		f = fopen("routing-outputF.txt", "a");
-	// 		break;
-	// }
-	// // Timestamp
- //    time_t ltime;
-	// struct tm* timeinfo;
-	// time(&ltime);
-	// timeinfo = localtime(&ltime);
-	// snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
- //    fprintf(f, "Timestamp: %s\n, Destination Router: %i\n, Arrival Port: %i\n, Source Port: %i\n", timeBuffer, currTable->destinationPorts[i], index, sourceIndex);
-	// if (currTable->index == i) {	//reached destination
-		
-	// }
-	// else {
-	// 	int i = 0;
-	// 	for (;i<NUMROUTERS; i++) {
-	// 		if(currTable->destinationPorts[i] == destPort) {
-	// 			int j = currTable->outgoingPorts[i] - 10000;
-	// 			int n = sendto(sockfd[j], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix[index][j]], clientlen);
-	// 		}
-	// 	}
-	// }
+/* forwardPacket()
+ *
+ * Forwards a packet from the source to destination
+ */
+void forwardPacket(struct packet *p, struct router** network) {
+	char src = p->srcNode;
+	char dst = p->dstNode;
+	int index = 0;
+	int i;
+
+	int destIndex;
+	int outgoing;
+	char nextRouter;
+
+	struct router* curr = malloc(NUMROUTERS * sizeof(struct router));
+	curr = routerToTable(network, src);
+	p->arrivalPort = routerToPort(tableName(curr));
+	while (tableName(curr) != dst) {
+		destIndex = getDestPortIndex(curr, routerToPort(dst));
+		outgoing = curr->outgoingPorts[destIndex];
+		p->forwardingPort = outgoing;
+		outputPacket(curr, p, false);
+		if (outgoing == routerToPort(tableName(curr))) {
+			// next router is going to be destination router
+			break;
+		}
+
+		nextRouter = portToRouter(outgoing);
+		curr = routerToTable(network, nextRouter);
+		index++;
+	}
+
+	// Reached destination router
+	struct router* dstRouter = malloc(NUMROUTERS * sizeof(struct router));
+	dstRouter = routerToTable(network, dst);
+	outputPacket(dstRouter, p, true);
+
+	return;
+
+	// while current router is not destination router
+		// get index of destination port
+		// use index to get outgoing port
+		// write to output timestamp, src node, dst node, arrival UDP port, and outgoing UDP port
+		// assign arrival port and forwarding port
+		// if outgoing port is same as current port (next router is dst router)
+			// break;
+
+	// at destination router...
+		// output data (message)
+		// output src and dst router
+		// output each arrival and outgoing port that isn't equal to 0
 }
 
 /* initializeOutputFiles()
@@ -997,20 +1135,24 @@ int main(int argc, char *argv[])
 				}
 			}
 			if (count >= NUMROUTERS * 2) {
+				for (i=0; i<NUMROUTERS; i++) {
+					outputTable(network[i], true);
+				}
+
 				stableState = true;
-				printf("\n\nFINAL ROUTER INFO:\n\n");
-				printf("ROUTER A:\n\n");
-				printRouter(&tableA);
-				printf("\n\nROUTER B:\n\n");
-				printRouter(&tableB);
-				printf("\n\nROUTER C:\n\n");
-				printRouter(&tableC);
-				printf("\n\nROUTER D:\n\n");
-				printRouter(&tableD);
-				printf("\n\nROUTER E:\n\n");
-				printRouter(&tableE);
-				printf("\n\nROUTER F:\n\n");
-				printRouter(&tableF);
+				// printf("\n\nFINAL ROUTER INFO:\n\n");
+				// printf("ROUTER A:\n\n");
+				// printRouter(&tableA);
+				// printf("\n\nROUTER B:\n\n");
+				// printRouter(&tableB);
+				// printf("\n\nROUTER C:\n\n");
+				// printRouter(&tableC);
+				// printf("\n\nROUTER D:\n\n");
+				// printRouter(&tableD);
+				// printf("\n\nROUTER E:\n\n");
+				// printRouter(&tableE);
+				// printf("\n\nROUTER F:\n\n");
+				// printRouter(&tableF);
 				printf("\n\nWhat do you want to do?\n\n1) kill router\n2) send packet\n\n");
 				// steady state
 				// scan for input to send a packe
@@ -1059,22 +1201,22 @@ int main(int argc, char *argv[])
 
 						break;
 					case 2:
-						printf("Type [SRC_ROUTER] [DEST_ROUTER]\n");
-						scanf("%c %c", &srcRouter, &dstRouter);
-						printf("Routing a packet from Router %c to Router %c\n", srcRouter, dstRouter);
-						struct packet p = { "d", "message", srcRouter, dstRouter, 
-												{ 0, 0, 0, 0, 0},
-												{ 0, 0, 0, 0, 0}
-											};
+						printf("Type [SRC_ROUTER]\n");
+						scanf("%c", &srcRouter);
+						srcRouter = getchar();
+						srcRouter = toupper(srcRouter);
+						printf("Type [DST_ROUTER]\n");
+						scanf("%c", &dstRouter);
+						dstRouter = getchar();
+						dstRouter = toupper(dstRouter);
+						printf("Routing a packet from Router %c to Router %c...\n", srcRouter, dstRouter);
+						struct packet p = { 'd', "message", srcRouter, dstRouter, 0, 0 };
+						forwardPacket(&p, network);
 						break;
 				} 
-
-			//	break;
+				break;
 			}
 
 		}
-	}
-	for (i=0; i<NUMROUTERS; i++) {
-		outputTable(network[i], true);
 	}
 }
