@@ -700,8 +700,18 @@ int main(int argc, char *argv[])
 	printRouter(&tableA);
 	*/
 
-
+	memset(buf, 0, BUFSIZE);
 	tableToBuffer(&tableA, &buf);
+	struct router test;
+	bufferToTable(buf, &test);
+	tableToBuffer(&test, buf);
+	bufferToTable(buf, &test);
+	tableToBuffer(&test, buf);
+	bufferToTable(buf, &test);
+	tableToBuffer(&test, buf);
+	bufferToTable(buf, &test);
+	printRouter(&test);
+//	exit(0);
 //
 	/*
 	struct router back;
@@ -712,16 +722,17 @@ int main(int argc, char *argv[])
 	printRouter(&back);
 	exit(0);
 	*/
-	n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[start], clientlen);
+	n = sendto(sockfd[0], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[start], clientlen);
 
 	int nsocks = max(sockfd[0], sockfd[1]);
 	for (i=2; i<NUMROUTERS; i++) {
 		nsocks = max(nsocks, sockfd[i]);
 	}
-
+	int counterdd = 0;
 	/* loop: wait for datagram, then echo it */
 	while (1) {
 		count = 0;
+		printf("%d", counterdd++);
 		printf("\n\n### Starting next iteration of while loop ###\n\n");
 		FD_ZERO(&socks);
 		for (i=0; i<NUMROUTERS; i++) {
@@ -734,19 +745,20 @@ int main(int argc, char *argv[])
 			/* receives UDP datagram from client */
 			memset(buf, 0, BUFSIZE);
 			if (FD_ISSET(sockfd[0], &socks)) {
-				if ( (n = recvfrom(sockfd[0], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+				if ( (n = recvfrom(sockfd[0], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
 
 				struct router compTable;
-				bufferToTable(&buf, &compTable);
+				bufferToTable(buf, &compTable);
 
 				printf("Received table:\n");
 				printRouter(&compTable);
 				int l;
 				for (l = 0; l < NUMROUTERS; l++)
 				{
-					printf("%d", compTable.destinationPorts[l]);
+					printf("%d\n", compTable.destinationPorts[l]);
 				}
+				//exit(0);
 				printf("A's original table:\n");
 				printRouter(&tableA);
 
@@ -760,7 +772,7 @@ int main(int argc, char *argv[])
 
 				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[0][i] != -1) {
-						n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[0][i]], clientlen);
+						n = sendto(sockfd[0], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[0][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
 						printf("Reached here A - and neighborMatrix[0][%i]: Value = %i\n", i, neighborMatrix.r[0][i]);
@@ -773,7 +785,7 @@ int main(int argc, char *argv[])
 			// else
 			if (FD_ISSET(sockfd[1], &socks)) {
 				printf("8\n");
-				if ( (n = recvfrom(sockfd[1], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+				if ( (n = recvfrom(sockfd[1], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 				{
 					error("Error receiving datagram from client\n");
 					printf("error\n");
@@ -802,7 +814,7 @@ int main(int argc, char *argv[])
 
 				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[1][i] != -1) {
-						n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[1][i]], clientlen);
+						n = sendto(sockfd[1], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[1][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
 						printf("Reached here B - and neighborMatrix[1][%i]: Value = %i\n", i, neighborMatrix.r[1][i]);
@@ -814,7 +826,7 @@ int main(int argc, char *argv[])
 
 			// else
 			if (FD_ISSET(sockfd[2], &socks)) {
-				if ( (n = recvfrom(sockfd[2], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+				if ( (n = recvfrom(sockfd[2], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
 
 				struct router compTable;
@@ -836,7 +848,7 @@ int main(int argc, char *argv[])
 
 				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[2][i] != -1) {
-						n = sendto(sockfd[2], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[2][i]], clientlen);
+						n = sendto(sockfd[2], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[2][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
 						printf("Reached here C - and neighborMatrix[2][%i]: Value = %i\n", i, neighborMatrix.r[2][i]);
@@ -847,7 +859,7 @@ int main(int argc, char *argv[])
 			}
 			//else
 			if (FD_ISSET(sockfd[3], &socks)) {
-				if ( (n = recvfrom(sockfd[3], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+				if ( (n = recvfrom(sockfd[3], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
 
 				struct router compTable;
@@ -869,7 +881,7 @@ int main(int argc, char *argv[])
 				
 				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[3][i] != -1) {
-						n = sendto(sockfd[3], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[3][i]], clientlen);
+						n = sendto(sockfd[3], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[3][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
 						printf("Reached here D - and neighborMatrix[3][%i]: Value = %i\n", i, neighborMatrix.r[3][i]);
@@ -882,7 +894,7 @@ int main(int argc, char *argv[])
 			}
 			// else
 			if (FD_ISSET(sockfd[4], &socks)) {
-				if ( (n = recvfrom(sockfd[4], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+				if ( (n = recvfrom(sockfd[4], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
 
 				struct router compTable;
@@ -904,7 +916,7 @@ int main(int argc, char *argv[])
 
 				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[4][i] != -1) {
-						n = sendto(sockfd[4], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[4][i]], clientlen);
+						n = sendto(sockfd[4], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[4][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
 						printf("Reached here E - and neighborMatrix[4][%i]: Value = %i\n", i, neighborMatrix.r[4][i]);
@@ -916,7 +928,7 @@ int main(int argc, char *argv[])
 			}
 			// else
 			if (FD_ISSET(sockfd[5], &socks)) {
-				if ( (n = recvfrom(sockfd[5], buf, BUFSIZE, 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
+				if ( (n = recvfrom(sockfd[5], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
 
 				struct router compTable;
@@ -938,7 +950,7 @@ int main(int argc, char *argv[])
 
 				for (i=0; i<NUMROUTERS; i++) {
 					if (neighborMatrix.r[5][i] != -1) {
-						n = sendto(sockfd[5], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[5][i]], clientlen);
+						n = sendto(sockfd[5], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[5][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
 						printf("Reached here F - and neighborMatrix[5][%i]: Value = %i\n", i, neighborMatrix.r[5][i]);
