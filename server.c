@@ -878,8 +878,6 @@ int main(int argc, char *argv[])
 					}
 				}
 			}
-
-
 			if (count >= NUMROUTERS * 2) {
 				stableState = true;
 				break;
