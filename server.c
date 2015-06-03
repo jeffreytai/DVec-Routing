@@ -178,7 +178,7 @@ void outputTable(struct router *table, bool isStable) {
 	    time(&ltime);
 	    timeinfo = localtime(&ltime);
 	    snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
-	    fprintf(f, "\nTimestamp: %sDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
+	    fprintf(f, "\nTimestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
 	} else {
 		fprintf(f, "\nTable in Stable State\nDestination, Cost, Outgoing Port, Destination Port\n");
 	}
@@ -253,7 +253,7 @@ void initializeOutputFiles(struct router **network) {
 
             snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
 
-            fprintf(f, "Timestamp: %sDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
+            fprintf(f, "Timestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
             int i;
             for (i=0; i<NUMROUTERS; i++) {
                 fprintf(f, "%c %i %i %i\n",
