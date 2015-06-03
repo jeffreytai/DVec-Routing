@@ -882,7 +882,74 @@ int main(int argc, char *argv[])
 
 			if (count >= NUMROUTERS * 2) {
 				stableState = true;
-				break;
+				 printf("\n\nFINAL ROUTER INFO:\n\n");
+	 printf("ROUTER A:\n\n");
+	 printRouter(&tableA);
+	 printf("\n\nROUTER B:\n\n");
+	 printRouter(&tableB);
+	 printf("\n\nROUTER C:\n\n");
+	 printRouter(&tableC);
+	 printf("\n\nROUTER D:\n\n");
+	 printRouter(&tableD);
+	 printf("\n\nROUTER E:\n\n");
+	 printRouter(&tableE);
+	 printf("\n\nROUTER F:\n\n");
+	 printRouter(&tableF);
+				printf("\n\nWhat do you want to do?\n\n1) kill router\n2) send packet\n\n");
+				// steady state
+				// scan for input to send a packe
+				int option = 6; // kill router, or send packet from x to y
+				char toKill = NULL;
+				int srcIndex = NULL, dstIndex = NULL;
+				scanf("%d", &option);
+				switch (option)
+				{
+					case 1:
+						printf("Type the router number to kill:\n");
+						scanf("\n%c", &toKill);
+						printf("Killing router %c\n", toKill);
+						// set the link cost to the specified router to INT_MAX
+						// for each router
+							// send their new routing tables to each neighbor
+						
+						tableA.costs[toKill - 'a'] = INT_MAX;
+						tableB.costs[toKill - 'a'] = INT_MAX;
+						tableC.costs[toKill - 'a'] = INT_MAX;
+						tableD.costs[toKill - 'a'] = INT_MAX;
+						tableE.costs[toKill - 'a'] = INT_MAX;
+						tableF.costs[toKill - 'a'] = INT_MAX;
+						// resend all of the routers DVs to each neighbor
+						for (i = 0; i < NUMROUTERS; i++)
+						{
+							if (toKill - 'a' == i)
+								continue;
+							// send dv to all of i's numbers
+							// put ith table into a buffer and send to neighbors
+							struct router * toSend = network[i];
+							tableToBuffer(toSend, buf);
+							int j;
+							for (j = 0; j < NUMROUTERS; j++)
+							{
+								if (neighborMatrix.r[i][j] != -1)
+								{
+									// FLUSH the neighbors socket
+//									while (0 < recvfrom(sockfd[], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)))
+									n = sendto(sockfd[i], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[i][j]], clientlen);
+									if (n < 0)
+										error("Error sending to client");
+								}
+							}
+						}
+
+						break;
+					case 2:
+						printf("Type [SRC_ROUTER_PORT#] [DEST_ROUTER_PORT#]\n");
+						scanf("%d %d", &srcIndex, &dstIndex);
+						printf("Routing a packet from %d to %d\n", srcIndex, dstIndex);
+						break;
+				} 
+
+			//	break;
 			}
 
 		}
