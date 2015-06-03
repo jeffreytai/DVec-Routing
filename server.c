@@ -729,9 +729,10 @@ int main(int argc, char *argv[])
 		nsocks = max(nsocks, sockfd[i]);
 	}
 	int counterdd = 0;
+	count = 0;
 	/* loop: wait for datagram, then echo it */
 	while (1) {
-		count = 0;
+	//	count = 0;
 		printf("%d", counterdd++);
 		printf("\n\n### Starting next iteration of while loop ###\n\n");
 		FD_ZERO(&socks);
@@ -764,6 +765,8 @@ int main(int argc, char *argv[])
 
 				if (updateTable(&tableA, compTable) == false)
 					count++;
+				else
+					count = 0;
 
 				printf("A's updated table:\n");
 				printRouter(&tableA);
@@ -806,6 +809,8 @@ int main(int argc, char *argv[])
 
 				if (updateTable(&tableB, compTable) == false)
 					count++;
+				else
+					count = 0;
 
 				printf("B's updated table:\n");
 				printRouter(&tableB);
@@ -840,6 +845,8 @@ int main(int argc, char *argv[])
 
 				if(updateTable(&tableC, compTable) == false)
 					count++;
+				else
+					count = 0;
 
 				printf("C's updated table:\n");
 				printRouter(&tableC);
@@ -873,6 +880,8 @@ int main(int argc, char *argv[])
 
 				if(updateTable(&tableD, compTable) == false)
 					count++;
+				else
+					count = 0;
 
 				printf("D's updated table:\n");
 				printRouter(&tableD);
@@ -908,6 +917,8 @@ int main(int argc, char *argv[])
 
 				if(updateTable(&tableE, compTable) == false)
 					count++;
+				else
+					count = 0;
 
 				printf("E's updated table:\n");
 				printRouter(&tableE);
@@ -942,6 +953,8 @@ int main(int argc, char *argv[])
 
 				if(updateTable(&tableF, compTable) == false)
 					count++;
+				else
+					count = 0;
 
 				printf("F's updated table:\n");
 				printRouter(&tableF);
@@ -962,10 +975,23 @@ int main(int argc, char *argv[])
 			}
 
 
-			if (count == NUMROUTERS) {
+			if (count >= NUMROUTERS * 2) {
 				break;
 			}
 
 		}
 	}
+	printf("\n\nFINAL ROUTER INFO:\n\n");
+	printf("ROUTER A:\n\n");
+	printRouter(&tableA);
+	printf("\n\nROUTER B:\n\n");
+	printRouter(&tableB);
+	printf("\n\nROUTER C:\n\n");
+	printRouter(&tableC);
+	printf("\n\nROUTER D:\n\n");
+	printRouter(&tableD);
+	printf("\n\nROUTER E:\n\n");
+	printRouter(&tableE);
+	printf("\n\nROUTER F:\n\n");
+	printRouter(&tableF);
 }
