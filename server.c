@@ -38,10 +38,10 @@
 struct router
 {
 	int index;
-	char otherRouters[6];
-	int costs[6];
-	int outgoingPorts[6];
-	int destinationPorts[6];
+	char otherRouters[NUMROUTERS];
+	int costs[NUMROUTERS];
+	int outgoingPorts[NUMROUTERS];
+	int destinationPorts[NUMROUTERS];
 };
 
 /* printRouter()
@@ -72,7 +72,7 @@ void printBuffer(int * buf)
 
 struct matrix
 {
-	int r[6][6];
+	int r[NUMROUTERS][NUMROUTERS];
 };
 
 void error(char *msg) {
@@ -190,7 +190,7 @@ void outputTable(struct router *table) {
     time(&ltime);
     tm_info = localtime(&ltime);
     snprintf(timeBuffer, timeBufferSize, "%ld", tm_info);
-    fprintf(f, "Timestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
+    fprintf(f, "\nTimestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
 
 	int i;
     for (i=0; i<NUMROUTERS; i++) {
@@ -238,7 +238,7 @@ bool updateTable(struct router *currTable, struct router rcvdTable) {
  * Initializes the routing-outputX.txt files from the routing tables.
  */
 void initializeOutputFiles(struct router *network) {
-		char routerLetters[6] = "ABCDEF";
+		char routerLetters[NUMROUTERS] = "ABCDEF";
 
     	int tableIndex = 0, timeBufferSize = 64, writeBufferSize = 1024;
 
@@ -286,7 +286,7 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 	int numNeighbors[NUMROUTERS] = {0};
 
 	struct matrix neighborMatrix;
-	memset(neighborMatrix.r, -1, sizeof(int) * 6 * 6);
+	memset(neighborMatrix.r, -1, sizeof(int) * NUMROUTERS * NUMROUTERS);
 
 	char line[12];
 	while (fgets(line, 12, f) != NULL) {
@@ -522,9 +522,9 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 
 int main(int argc, char *argv[])
 {
-	int sockfd[6]; /* socket */
+	int sockfd[NUMROUTERS]; /* socket */
 	int clientlen; /* byte size of client's address */
-	struct sockaddr_in serveraddr[6]; /* server's address */
+	struct sockaddr_in serveraddr[NUMROUTERS]; /* server's address */
 	struct sockaddr_in clientaddr; /* client's address */
 	struct hostent *hostp; /* client host info */
 	int buf[BUFSIZE]; /* message buffer */
@@ -715,7 +715,7 @@ int main(int argc, char *argv[])
 	n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[start], clientlen);
 
 	int nsocks = max(sockfd[0], sockfd[1]);
-	for (i=2; i<6; i++) {
+	for (i=2; i<NUMROUTERS; i++) {
 		nsocks = max(nsocks, sockfd[i]);
 	}
 
@@ -950,7 +950,7 @@ int main(int argc, char *argv[])
 			}
 
 
-			if (count == 6) {
+			if (count == NUMROUTERS) {
 				break;
 			}
 
