@@ -24,4 +24,4 @@ II. Challenges
 Difficulties faced, and how we overcame.
 
 - routers sending DV (in buffer form) to multiple sockets
-- ...
+- router A successfully sends to its neighbors, b sends to its neighbors, but while loop stops there
