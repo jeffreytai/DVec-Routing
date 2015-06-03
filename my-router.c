@@ -1,3 +1,8 @@
+/* my-router.c
+ *
+ * Usage:
+ *			$ ./my-router [PORT]
+ */
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -73,6 +78,11 @@ void printBuffer(int * buf)
 struct matrix
 {
 	int r[6][6];
+};
+
+struct flatmatrix
+{
+	int r[NUMROUTERS];
 };
 
 void error(char *msg) {
@@ -207,7 +217,7 @@ void outputTable(struct router *table) {
  *
  * Updates table if possible. If table is changed, output to file.
  */
-bool updateTable(struct router *currTable, struct router rcvdTable) {
+void updateTable(struct router *currTable, struct router rcvdTable) {
 	bool isChanged = false;
 	int i;
 	for (i=0; i<NUMROUTERS; i++) {
@@ -230,7 +240,7 @@ bool updateTable(struct router *currTable, struct router rcvdTable) {
 	if (isChanged) {
 		outputTable(currTable);
 	}
-	return isChanged;
+	return;
 }
 
 /* initializeOutputFiles()
@@ -278,15 +288,15 @@ void initializeOutputFiles(struct router *network) {
  *
  * Initializes the routing tables from the information in 'sample.txt'.
  */
-struct matrix initializeFromFile(struct router *tableA, struct router *tableB, struct router *tableC, struct router *tableD, struct router *tableE, struct router *tableF) {
+struct matrix initializeFromFile(struct router *table) {
 	FILE *f = fopen("sample.txt", "r");
 	if (f == NULL)
 		error("Error opening sample file");
 
 	int numNeighbors[NUMROUTERS] = {0};
 
-	struct matrix neighborMatrix;
-	memset(neighborMatrix.r, -1, sizeof(int) * 6 * 6);
+	struct flatmatrix neighborMatrix;
+	memset(neighborMatrix.r, -1, sizeof(int) * 6);
 
 	char line[12];
 	while (fgets(line, 12, f) != NULL) {
@@ -477,40 +487,35 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 		}
 	}
 	index=0;
-	i = 0;
-	for (; i<NUMROUTERS; i++) {
+	for (i=0; i<NUMROUTERS; i++) {
 		if (tableB->costs[i] != INT_MAX && tableB->costs[i] != 0) {
 			neighborMatrix.r[1][index] = i;
 			index++;
 		}
 	}
-	i = 0;
 	index=0;
-	for (; i<NUMROUTERS; i++) {
+	for (i=0; i<NUMROUTERS; i++) {
 		if (tableC->costs[i] != INT_MAX && tableC->costs[i] != 0) {
 			neighborMatrix.r[2][index] = i;
 			index++;
 		}
 	}
 	index=0;
-	i = 0;
-	for (; i<NUMROUTERS; i++) {
+	for (i=0; i<NUMROUTERS; i++) {
 		if (tableD->costs[i] != INT_MAX && tableD->costs[i] != 0) {
 			neighborMatrix.r[3][index] = i;
 			index++;
 		}
 	}
-	i = 0;
 	index=0;
-	for (; i<NUMROUTERS; i++) {
+	for (i=0; i<NUMROUTERS; i++) {
 		if (tableE->costs[i] != INT_MAX && tableE->costs[i] != 0) {
 			neighborMatrix.r[4][index] = i;
 			index++;
 		}
 	}
 	index=0;
-	i = 0;
-	for (; i<NUMROUTERS; i++) {
+	for (i=0; i<NUMROUTERS; i++) {
 		if (tableF->costs[i] != INT_MAX && tableF->costs[i] != 0) {
 			neighborMatrix.r[5][index] = i;
 			index++;
@@ -531,107 +536,79 @@ int main(int argc, char *argv[])
 	char *hostaddrp; /* dotted decimal host address string */
 	int optval; /* flag value for setsockopt */
 	int n; /* message byte size */
-	int count;
 	fd_set socks;
 
-	/* for development */
-	// struct router tableA = {
-	// 	INDEXA,
-	// 	{   'A', 	 'B', 	 'C',     'D',     'E',      'F'   },
-	// 	{    0, 	  3, 	INT_MAX, INT_MAX,   1, 	   INT_MAX },
-	// 	{ ROUTERA, ROUTERA,  NULL,    NULL,   ROUTERA,  NULL   },
-	// 	{ ROUTERA, ROUTERB,  NULL,    NULL,   ROUTERE,  NULL   }
-	// };
+	if (argc < 2)
+	{
+		error("incorrect usage!");
+		exit(1);
+	}
 
-	// struct router tableB = {
-	// 	INDEXB,
-	// 	{   'A', 	 'B', 	  'C', 	   'D',	   'E',     'F'    },
-	// 	{ 	 3, 	  0, 	   3, 	 INT_MAX, 	2, 	     1     },
-	// 	{ ROUTERB, ROUTERB, ROUTERB,  NULL,   ROUTERB, ROUTERB },
-	// 	{ ROUTERA, ROUTERB, ROUTERC,  NULL,   ROUTERE, ROUTERF }
-	// };
+	int index = atoi(argv[1]);
 
-	// struct router tableC = {
-	// 	INDEXC,
-	// 	{   'A', 	 'B', 	  'C', 	   'D',	   'E', 	 'F'   },
-	// 	{ INT_MAX,    3, 	   0, 	    2, 	  INT_MAX, 	  1    },
-	// 	{   NULL,  ROUTERC, ROUTERC, ROUTERC,  NULL,   ROUTERC },
-	// 	{   NULL,  ROUTERB, ROUTERC, ROUTERD,  NULL,   ROUTERF }
-	// };
+	struct router table;
+	switch (index)
+	{
+		case INDEXA:
+			table = {
+				INDEXA,
+				{   'A',     NULL,    NULL,    NULL,    NULL,    NULL   },
+				{    0,     INT_MAX, INT_MAX, INT_MAX, INT_MAX, INT_MAX },
+				{ ROUTERA,   NULL,    NULL,    NULL,    NULL,    NULL   },
+				{ ROUTERA,   NULL,    NULL,    NULL,    NULL,    NULL   }
+			};
+			break;
+		case INDEXB:
+			table = {
+				INDEXB,
+				{  NULL,     'B',    NULL,    NULL,    NULL,    NULL    },
+				{ INT_MAX,    0,    INT_MAX, INT_MAX, INT_MAX, INT_MAX  },
+				{  NULL,   ROUTERB,   NULL,    NULL,    NULL,    NULL   },
+				{  NULL,   ROUTERB,   NULL,    NULL,    NULL,    NULL   }
+			};
+			break;
+		case INDEXC:
+			table = {
+				INDEXC,
+				{  NULL,     NULL,     'C',      NULL,    NULL,    NULL   },
+				{ INT_MAX, INT_MAX,     0,     INT_MAX, INT_MAX, INT_MAX  },
+				{  NULL,     NULL,   ROUTERC,    NULL,    NULL,    NULL   },
+				{  NULL,     NULL,   ROUTERC,    NULL,    NULL,    NULL   }
+			};
+			break;
+		case INDEXD:
+			table = {
+				INDEXD,
+				{  NULL,     NULL,    NULL,    'D',     NULL,    NULL    },
+				{ INT_MAX, INT_MAX, INT_MAX,    0,    INT_MAX, INT_MAX   },
+				{  NULL,     NULL,    NULL,  ROUTERD,    NULL,    NULL   },
+				{  NULL,     NULL,    NULL,  ROUTERD,    NULL,    NULL   }
+			};
+			break;
+		case INDEXE:
+			table = {
+				INDEXE,
+				{  NULL,     NULL,    NULL,    NULL,    'E',    NULL     },
+				{ INT_MAX, INT_MAX, INT_MAX, INT_MAX,    0,    INT_MAX   },
+				{  NULL,     NULL,    NULL,    NULL,  ROUTERE,    NULL   },
+				{  NULL,     NULL,    NULL,    NULL,  ROUTERE,    NULL   }
+			};
+			break;
+		case INDEXF:
+			table = {
+				INDEXF,
+				{  NULL,     NULL,    NULL,    NULL,    NULL,     'F'   },
+				{ INT_MAX, INT_MAX, INT_MAX, INT_MAX, INT_MAX,    0     },
+				{  NULL,     NULL,    NULL,    NULL,    NULL,  ROUTERF  },
+				{  NULL,     NULL,    NULL,    NULL,    NULL,  ROUTERF  }
+			};
+			break;
+	}
 
-	// struct router tableD = {
-	// 	INDEXD,
-	// 	{   'A',    'B',      'C',    'D',	   'E',     'F'   },
-	// 	{ INT_MAX, INT_MAX,    2, 	   0, 	  INT_MAX, 	 3    },
-	// 	{   NULL,   NULL,   ROUTERD, ROUTERD,  NULL,  ROUTERD },
-	// 	{   NULL,   NULL,   ROUTERC, ROUTERD,  NULL,  ROUTERF }
-	// };
-
-	// struct router tableE = {
-	// 	INDEXE,
-	// 	{  'A',      'B',     'C',     'D',     'E',     'F'   },
-	// 	{   1,        2,    INT_MAX, INT_MAX,    0,       3    },
-	// 	{ ROUTERE, ROUTERE,   NULL,    NULL,  ROUTERE, ROUTERE },
-	// 	{ ROUTERA, ROUTERB,   NULL,    NULL,  ROUTERE, ROUTERF }
-	// };
-
-	// struct router tableF = {
-	// 	INDEXF,
-	// 	{  'A',       'B',     'C',    'D',     'E',     'F'    },
-	// 	{  INT_MAX,    1,       1,      3,       3,       0     },
-	// 	{   NULL,   ROUTERF, ROUTERF, ROUTERF, ROUTERF, ROUTERF },
-	// 	{   NULL,   ROUTERB, ROUTERC, ROUTERD, ROUTERE, ROUTERF }
-	// };
-
-	/* end development */
-
-	/* for testing */
-
-	struct router tableA = {
-		INDEXA,
-		{   'A',     NULL,    NULL,    NULL,    NULL,    NULL   },
-		{    0,     INT_MAX, INT_MAX, INT_MAX, INT_MAX, INT_MAX },
-		{ ROUTERA,   NULL,    NULL,    NULL,    NULL,    NULL   },
-		{ ROUTERA,   NULL,    NULL,    NULL,    NULL,    NULL   }
-	};
-	struct router tableB = {
-		INDEXB,
-		{  NULL,     'B',    NULL,    NULL,    NULL,    NULL    },
-		{ INT_MAX,    0,    INT_MAX, INT_MAX, INT_MAX, INT_MAX  },
-		{  NULL,   ROUTERB,   NULL,    NULL,    NULL,    NULL   },
-		{  NULL,   ROUTERB,   NULL,    NULL,    NULL,    NULL   }
-	};
-	struct router tableC = {
-		INDEXC,
-		{  NULL,     NULL,     'C',      NULL,    NULL,    NULL   },
-		{ INT_MAX, INT_MAX,     0,     INT_MAX, INT_MAX, INT_MAX  },
-		{  NULL,     NULL,   ROUTERC,    NULL,    NULL,    NULL   },
-		{  NULL,     NULL,   ROUTERC,    NULL,    NULL,    NULL   }
-	};
-	struct router tableD = {
-		INDEXD,
-		{  NULL,     NULL,    NULL,    'D',     NULL,    NULL    },
-		{ INT_MAX, INT_MAX, INT_MAX,    0,    INT_MAX, INT_MAX   },
-		{  NULL,     NULL,    NULL,  ROUTERD,    NULL,    NULL   },
-		{  NULL,     NULL,    NULL,  ROUTERD,    NULL,    NULL   }
-	};
-	struct router tableE = {
-		INDEXE,
-		{  NULL,     NULL,    NULL,    NULL,    'E',    NULL     },
-		{ INT_MAX, INT_MAX, INT_MAX, INT_MAX,    0,    INT_MAX   },
-		{  NULL,     NULL,    NULL,    NULL,  ROUTERE,    NULL   },
-		{  NULL,     NULL,    NULL,    NULL,  ROUTERE,    NULL   }
-	};
-	struct router tableF = {
-		INDEXF,
-		{  NULL,     NULL,    NULL,    NULL,    NULL,     'F'   },
-		{ INT_MAX, INT_MAX, INT_MAX, INT_MAX, INT_MAX,    0     },
-		{  NULL,     NULL,    NULL,    NULL,    NULL,  ROUTERF  },
-		{  NULL,     NULL,    NULL,    NULL,    NULL,  ROUTERF  }
-	};
-
-	struct matrix neighborMatrix = initializeFromFile(&tableA, &tableB, &tableC, &tableD, &tableE, &tableF);	
+//	struct matrix neighborMatrix = initializeFromFile(&tableA, &tableB, &tableC, &tableD, &tableE, &tableF);	
 	/* end testing */
+
+	struct flatmatrix neighborMatrix = initializeFromFile(&table);
 
 	struct router *network = malloc(NUMROUTERS * sizeof(struct router));
 	network[0] = tableA;
@@ -699,8 +676,6 @@ int main(int argc, char *argv[])
 	printf("here is the router\n");
 	printRouter(&tableA);
 	*/
-
-
 	tableToBuffer(&tableA, &buf);
 //
 	/*
@@ -721,7 +696,6 @@ int main(int argc, char *argv[])
 
 	/* loop: wait for datagram, then echo it */
 	while (1) {
-		count = 0;
 		printf("\n\n### Starting next iteration of while loop ###\n\n");
 		FD_ZERO(&socks);
 		for (i=0; i<NUMROUTERS; i++) {
@@ -742,16 +716,10 @@ int main(int argc, char *argv[])
 
 				printf("Received table:\n");
 				printRouter(&compTable);
-				int l;
-				for (l = 0; l < NUMROUTERS; l++)
-				{
-					printf("%d", compTable.destinationPorts[l]);
-				}
 				printf("A's original table:\n");
 				printRouter(&tableA);
 
-				if (updateTable(&tableA, compTable) == false)
-					count++;
+				updateTable(&tableA, compTable);
 
 				printf("A's updated table:\n");
 				printRouter(&tableA);
@@ -792,8 +760,7 @@ int main(int argc, char *argv[])
 				printf("B's original table:\n");
 				printRouter(&tableB);
 
-				if (updateTable(&tableB, compTable) == false)
-					count++;
+				updateTable(&tableB, compTable);
 
 				printf("B's updated table:\n");
 				printRouter(&tableB);
@@ -826,8 +793,7 @@ int main(int argc, char *argv[])
 				printf("C's original table:\n");
 				printRouter(&tableC);
 
-				if(updateTable(&tableC, compTable) == false)
-					count++;
+				updateTable(&tableC, compTable);
 
 				printf("C's updated table:\n");
 				printRouter(&tableC);
@@ -859,8 +825,7 @@ int main(int argc, char *argv[])
 				printf("D's original table:\n");
 				printRouter(&tableD);
 
-				if(updateTable(&tableD, compTable) == false)
-					count++;
+				updateTable(&tableD, compTable);
 
 				printf("D's updated table:\n");
 				printRouter(&tableD);
@@ -894,8 +859,7 @@ int main(int argc, char *argv[])
 				printf("E's original table:\n");
 				printRouter(&tableE);
 
-				if(updateTable(&tableE, compTable) == false)
-					count++;
+				updateTable(&tableE, compTable);
 
 				printf("E's updated table:\n");
 				printRouter(&tableE);
@@ -928,8 +892,7 @@ int main(int argc, char *argv[])
 				printf("F's original table:\n");
 				printRouter(&tableF);
 
-				if(updateTable(&tableF, compTable) == false)
-					count++;
+				updateTable(&tableF, compTable);
 
 				printf("F's updated table:\n");
 				printRouter(&tableF);
@@ -950,7 +913,7 @@ int main(int argc, char *argv[])
 			}
 
 
-			if (count == 6) {
+			if (stableState(network)) {
 				break;
 			}
 
