@@ -751,22 +751,22 @@ int main(int argc, char *argv[])
 				struct router compTable;
 				bufferToTable(buf, &compTable);
 
-				printf("Received table:\n");
-				printRouter(&compTable);
-				int l;
-				for (l = 0; l < NUMROUTERS; l++)
-				{
-					printf("%d\n", compTable.destinationPorts[l]);
-				}
-				//exit(0);
-				printf("A's original table:\n");
-				printRouter(&tableA);
+				// printf("Received table:\n");
+				// printRouter(&compTable);
+				// int l;
+				// for (l = 0; l < NUMROUTERS; l++)
+				// {
+				// 	printf("%d\n", compTable.destinationPorts[l]);
+				// }
+
+				// printf("A's original table:\n");
+				// printRouter(&tableA);
 
 				if (updateTable(&tableA, compTable) == false)
 					count++;
 
-				printf("A's updated table:\n");
-				printRouter(&tableA);
+				// printf("A's updated table:\n");
+				// printRouter(&tableA);
 
 				tableToBuffer(&tableA, &buf);
 
@@ -778,8 +778,6 @@ int main(int argc, char *argv[])
 						printf("Reached here A - and neighborMatrix[0][%i]: Value = %i\n", i, neighborMatrix.r[0][i]);
 					}
 				}
-				// n = sendto(sockfd[0], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
-				// break;
 			}
 
 			// else
@@ -792,23 +790,23 @@ int main(int argc, char *argv[])
 				}
 
 				struct router compTable;
-/*
-				printBuffer(buf);
-				printf("%d %d\n\n\n", sizeof(buf), sizeof(compTable));
-*/
+
+				// printBuffer(buf);
+				// printf("%d %d\n\n\n", sizeof(buf), sizeof(compTable));
+
 				
 				bufferToTable(&buf, &compTable);
 
-				printf("Received table:\n");
-				printRouter(&compTable);
-				printf("B's original table:\n");
-				printRouter(&tableB);
+				// printf("Received table:\n");
+				// printRouter(&compTable);
+				// printf("B's original table:\n");
+				// printRouter(&tableB);
 
 				if (updateTable(&tableB, compTable) == false)
 					count++;
 
-				printf("B's updated table:\n");
-				printRouter(&tableB);
+				// printf("B's updated table:\n");
+				// printRouter(&tableB);
 
 				tableToBuffer(&tableB, &buf);
 
@@ -817,10 +815,9 @@ int main(int argc, char *argv[])
 						n = sendto(sockfd[1], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[1][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
-						printf("Reached here B - and neighborMatrix[1][%i]: Value = %i\n", i, neighborMatrix.r[1][i]);
+						//printf("Reached here B - and neighborMatrix[1][%i]: Value = %i\n", i, neighborMatrix.r[1][i]);
 					}
 				}
-				// n = sendto(sockfd[1], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[0], clientlen);
 			}
 
 
@@ -833,16 +830,16 @@ int main(int argc, char *argv[])
 
 				bufferToTable(&buf, &compTable);
 
-				printf("Received table:\n");
-				printRouter(&compTable);
-				printf("C's original table:\n");
-				printRouter(&tableC);
+				// printf("Received table:\n");
+				// printRouter(&compTable);
+				// printf("C's original table:\n");
+				// printRouter(&tableC);
 
 				if(updateTable(&tableC, compTable) == false)
 					count++;
 
-				printf("C's updated table:\n");
-				printRouter(&tableC);
+				// printf("C's updated table:\n");
+				// printRouter(&tableC);
 
 				tableToBuffer(&tableC, &buf);
 
@@ -851,11 +848,9 @@ int main(int argc, char *argv[])
 						n = sendto(sockfd[2], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[2][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
-						printf("Reached here C - and neighborMatrix[2][%i]: Value = %i\n", i, neighborMatrix.r[2][i]);
+						//printf("Reached here C - and neighborMatrix[2][%i]: Value = %i\n", i, neighborMatrix.r[2][i]);
 					}
 				}
-				// n = sendto(sockfd[2], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
-				// break;
 			}
 			//else
 			if (FD_ISSET(sockfd[3], &socks)) {
@@ -866,16 +861,16 @@ int main(int argc, char *argv[])
 
 				bufferToTable(&buf, &compTable);
 
-				printf("Received table:\n");
-				printRouter(&compTable);
-				printf("D's original table:\n");
-				printRouter(&tableD);
+				// printf("Received table:\n");
+				// printRouter(&compTable);
+				// printf("D's original table:\n");
+				// printRouter(&tableD);
 
 				if(updateTable(&tableD, compTable) == false)
 					count++;
 
-				printf("D's updated table:\n");
-				printRouter(&tableD);
+				// printf("D's updated table:\n");
+				// printRouter(&tableD);
 
 				tableToBuffer(&tableD, &buf);
 				
@@ -884,13 +879,9 @@ int main(int argc, char *argv[])
 						n = sendto(sockfd[3], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[3][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
-						printf("Reached here D - and neighborMatrix[3][%i]: Value = %i\n", i, neighborMatrix.r[3][i]);
+						//printf("Reached here D - and neighborMatrix[3][%i]: Value = %i\n", i, neighborMatrix.r[3][i]);
 					}
 				}
-				// n = sendto(sockfd[2], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
-				// n = sendto(sockfd[3], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[2], clientlen);
-				// if (n < 0)
-				// 	error("Error sending to client");
 			}
 			// else
 			if (FD_ISSET(sockfd[4], &socks)) {
@@ -901,16 +892,16 @@ int main(int argc, char *argv[])
 
 				bufferToTable(&buf, &compTable);
 
-				printf("Received table:\n");
-				printRouter(&compTable);
-				printf("E's original table:\n");
-				printRouter(&tableE);
+				// printf("Received table:\n");
+				// printRouter(&compTable);
+				// printf("E's original table:\n");
+				// printRouter(&tableE);
 
 				if(updateTable(&tableE, compTable) == false)
 					count++;
 
-				printf("E's updated table:\n");
-				printRouter(&tableE);
+				// printf("E's updated table:\n");
+				// printRouter(&tableE);
 
 				tableToBuffer(&tableE, &buf);
 
@@ -919,12 +910,9 @@ int main(int argc, char *argv[])
 						n = sendto(sockfd[4], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[4][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
-						printf("Reached here E - and neighborMatrix[4][%i]: Value = %i\n", i, neighborMatrix.r[4][i]);
+						//printf("Reached here E - and neighborMatrix[4][%i]: Value = %i\n", i, neighborMatrix.r[4][i]);
 					}
 				}
-				// n = sendto(sockfd[4], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[1], clientlen);
-				// if (n < 0)
-				// 	error("Error sending to client");
 			}
 			// else
 			if (FD_ISSET(sockfd[5], &socks)) {
@@ -935,16 +923,16 @@ int main(int argc, char *argv[])
 
 				bufferToTable(&buf, &compTable);
 
-				printf("Received table:\n");
-				printRouter(&compTable);
-				printf("F's original table:\n");
-				printRouter(&tableF);
+				// printf("Received table:\n");
+				// printRouter(&compTable);
+				// printf("F's original table:\n");
+				// printRouter(&tableF);
 
 				if(updateTable(&tableF, compTable) == false)
 					count++;
 
-				printf("F's updated table:\n");
-				printRouter(&tableF);
+				// printf("F's updated table:\n");
+				// printRouter(&tableF);
 
 				tableToBuffer(&tableF, &buf);
 
@@ -953,12 +941,9 @@ int main(int argc, char *argv[])
 						n = sendto(sockfd[5], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[5][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
-						printf("Reached here F - and neighborMatrix[5][%i]: Value = %i\n", i, neighborMatrix.r[5][i]);
+						//printf("Reached here F - and neighborMatrix[5][%i]: Value = %i\n", i, neighborMatrix.r[5][i]);
 					}
 				}
-				// n = sendto(sockfd[5], buf, sizeof(struct router), 0, (struct sockaddr *)&serveraddr[2], clientlen);
-				// if (n < 0)
-				// 	error("Error sending to client");
 			}
 
 
