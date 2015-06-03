@@ -34,6 +34,16 @@
 	#define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
 #endif
 
+struct packet
+{
+	char flag;
+	char message[50];
+	char srcNode;
+	char dstNode;
+	int arrivalPort[5];
+	int forwardingPort[5];
+};
+
 // struct node is size 84
 struct router
 {
@@ -222,6 +232,114 @@ bool updateTable(struct router *currTable, struct router rcvdTable) {
 		outputTable(currTable, false);
 	}
 	return isChanged;
+}
+
+int routerToPort(char r) {
+	switch (r)
+	{
+		case 'a':
+		case 'A':
+			return ROUTERA;
+			break;
+		case 'b':
+		case 'B':
+			return ROUTERB;
+			break;
+		case 'c':
+		case 'C':
+			return ROUTERC;
+			break;
+		case 'd':
+		case 'D':
+			return ROUTERD;
+			break;
+		case 'e':
+		case 'E':
+			return ROUTERE;
+			break;
+		case 'f':
+		case 'F':
+			return ROUTERF;
+			break;
+	}
+}
+
+struct router* routerToTable(struct router** network, char r) {
+	switch(r)
+	{
+		case 'a':
+		case 'A':
+			return network[0];
+			break;
+		case 'b':
+		case 'B':
+			return network[1];
+			break;
+		case 'c':
+		case 'C':
+			return network[2];
+			break;
+		case 'd':
+		case 'D':
+			return network[3];
+			break;
+		case 'e':
+		case 'E':
+			return network[4];
+			break;
+		case 'f':
+		case 'F':
+			return network[5];
+			break;
+	}
+}
+
+void forwardPacket(struct packet *p) {
+	// int destPort = buf[1];
+	// int index = currTable->index;
+	// int sourceIndex = sourceTable->index;
+	// FILE *f = NULL;
+ //        int timeBufferSize = 64;
+ //        char timeBuffer[timeBufferSize];
+	// switch (table->index) {
+	// 	case INDEXA:
+	// 		f = fopen("routing-outputA.txt", "a");
+	// 		break;
+	// 	case INDEXB:
+	// 		f = fopen("routing-outputB.txt", "a");
+	// 		break;
+	// 	case INDEXC:
+	// 		f = fopen("routing-outputC.txt", "a");
+	// 		break;
+	// 	case INDEXD:
+	// 		f = fopen("routing-outputD.txt", "a");
+	// 		break;
+	// 	case INDEXE:
+	// 		f = fopen("routing-outputE.txt", "a");
+	// 		break;
+	// 	case INDEXF:
+	// 		f = fopen("routing-outputF.txt", "a");
+	// 		break;
+	// }
+	// // Timestamp
+ //    time_t ltime;
+	// struct tm* timeinfo;
+	// time(&ltime);
+	// timeinfo = localtime(&ltime);
+	// snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+ //    fprintf(f, "Timestamp: %s\n, Destination Router: %i\n, Arrival Port: %i\n, Source Port: %i\n", timeBuffer, currTable->destinationPorts[i], index, sourceIndex);
+	// if (currTable->index == i) {	//reached destination
+		
+	// }
+	// else {
+	// 	int i = 0;
+	// 	for (;i<NUMROUTERS; i++) {
+	// 		if(currTable->destinationPorts[i] == destPort) {
+	// 			int j = currTable->outgoingPorts[i] - 10000;
+	// 			int n = sendto(sockfd[j], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix[index][j]], clientlen);
+	// 		}
+	// 	}
+	// }
 }
 
 /* initializeOutputFiles()
@@ -880,25 +998,25 @@ int main(int argc, char *argv[])
 			}
 			if (count >= NUMROUTERS * 2) {
 				stableState = true;
-				 printf("\n\nFINAL ROUTER INFO:\n\n");
-	 printf("ROUTER A:\n\n");
-	 printRouter(&tableA);
-	 printf("\n\nROUTER B:\n\n");
-	 printRouter(&tableB);
-	 printf("\n\nROUTER C:\n\n");
-	 printRouter(&tableC);
-	 printf("\n\nROUTER D:\n\n");
-	 printRouter(&tableD);
-	 printf("\n\nROUTER E:\n\n");
-	 printRouter(&tableE);
-	 printf("\n\nROUTER F:\n\n");
-	 printRouter(&tableF);
+				printf("\n\nFINAL ROUTER INFO:\n\n");
+				printf("ROUTER A:\n\n");
+				printRouter(&tableA);
+				printf("\n\nROUTER B:\n\n");
+				printRouter(&tableB);
+				printf("\n\nROUTER C:\n\n");
+				printRouter(&tableC);
+				printf("\n\nROUTER D:\n\n");
+				printRouter(&tableD);
+				printf("\n\nROUTER E:\n\n");
+				printRouter(&tableE);
+				printf("\n\nROUTER F:\n\n");
+				printRouter(&tableF);
 				printf("\n\nWhat do you want to do?\n\n1) kill router\n2) send packet\n\n");
 				// steady state
 				// scan for input to send a packe
 				int option = 6; // kill router, or send packet from x to y
 				char toKill = NULL;
-				int srcIndex = NULL, dstIndex = NULL;
+				char srcRouter, dstRouter;
 				scanf("%d", &option);
 				switch (option)
 				{
@@ -941,9 +1059,13 @@ int main(int argc, char *argv[])
 
 						break;
 					case 2:
-						printf("Type [SRC_ROUTER_PORT#] [DEST_ROUTER_PORT#]\n");
-						scanf("%d %d", &srcIndex, &dstIndex);
-						printf("Routing a packet from %d to %d\n", srcIndex, dstIndex);
+						printf("Type [SRC_ROUTER] [DEST_ROUTER]\n");
+						scanf("%c %c", &srcRouter, &dstRouter);
+						printf("Routing a packet from Router %c to Router %c\n", srcRouter, dstRouter);
+						struct packet p = { "d", "message", srcRouter, dstRouter, 
+												{ 0, 0, 0, 0, 0},
+												{ 0, 0, 0, 0, 0}
+											};
 						break;
 				} 
 
