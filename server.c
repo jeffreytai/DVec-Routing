@@ -699,9 +699,10 @@ int main(int argc, char *argv[])
 	printf("here is the router\n");
 	printRouter(&tableA);
 	*/
-	
+
+
 	tableToBuffer(&tableA, &buf);
-	
+//
 	/*
 	struct router back;
 	bufferToTable(buf, &back);
