@@ -80,6 +80,25 @@ void error(char *msg) {
 	exit(1);
 }
 
+/* getTime()
+ *
+ * Returns a string containing the time down to the milliseconds
+ */
+char* getTime() {
+	struct timeval tval;
+	struct tm* ptm;
+	char time_string[40];
+	long milliseconds;
+	char t[50];
+
+	gettimeofday(&tval, NULL);
+	ptm = localtime(&tval.tv_sec);
+	strftime(time_string, sizeof(time_string), "%Y-%m-%d %H:%M:%S", ptm);
+	milliseconds = tval.tv_usec/1000;
+	sprintf(t, "%s.%03ld\n", time_string, milliseconds);
+	return t;
+}
+
 /* tableToBuffer()
  *
  * Converts a router struct representation into an int buffer representation of a router.
@@ -153,13 +172,15 @@ void outputTable(struct router *table, bool isStable) {
 	}
 
 	if (!isStable) {
-	    time_t ltime;
-	    struct tm* timeinfo;
+	    // time_t ltime;
+	    // struct tm* timeinfo;
 
-	    time(&ltime);
-	    timeinfo = localtime(&ltime);
-	    snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
-	    fprintf(f, "\nTimestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
+	    // time(&ltime);
+	    // timeinfo = localtime(&ltime);
+	    // snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+	    char* t;
+        t = getTime();
+	    fprintf(f, "\nTimestamp: %sDestination, Cost, Outgoing Port, Destination Port\n", t);
 	} else {
 		fprintf(f, "\nTable in Stable State\nDestination, Cost, Outgoing Port, Destination Port\n");
 	}
@@ -226,14 +247,16 @@ void initializeOutputFiles(struct router **network) {
             if (f == NULL)
                 error("Error opening file");
             // Timestamp
-            time_t ltime;
-		    struct tm* timeinfo;
+      //       time_t ltime;
+		    // struct tm* timeinfo;
 
-		    time(&ltime);
-		    timeinfo = localtime(&ltime);
+		    // time(&ltime);
+		    // timeinfo = localtime(&ltime);
 
-            snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
-            fprintf(f, "Timestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
+      //       snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+            char* t;
+            t = getTime();
+            fprintf(f, "Timestamp: %sDestination, Cost, Outgoing Port, Destination Port\n", t);
             int i;
             for (i=0; i<NUMROUTERS; i++) {
                 fprintf(f, "%c %i %i %i\n",
@@ -870,18 +893,4 @@ int main(int argc, char *argv[])
 	for (i=0; i<NUMROUTERS; i++) {
 		outputTable(network[i], true);
 	}
-	
-	// printf("\n\nFINAL ROUTER INFO:\n\n");
-	// printf("ROUTER A:\n\n");
-	// printRouter(&tableA);
-	// printf("\n\nROUTER B:\n\n");
-	// printRouter(&tableB);
-	// printf("\n\nROUTER C:\n\n");
-	// printRouter(&tableC);
-	// printf("\n\nROUTER D:\n\n");
-	// printRouter(&tableD);
-	// printf("\n\nROUTER E:\n\n");
-	// printRouter(&tableE);
-	// printf("\n\nROUTER F:\n\n");
-	// printRouter(&tableF);
 }
