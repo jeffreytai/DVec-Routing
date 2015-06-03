@@ -698,12 +698,8 @@ int main(int argc, char *argv[])
 	printf("here is the router\n");
 	printRouter(&tableA);
 	*/
-	printRouter(&tableA);
+
 	tableToBuffer(&tableA, &buf);
-	struct router testTable;
-	bufferToTable(&buf, &testTable);
-	printRouter(&testTable);
-	exit(0);
 //
 	/*
 	struct router back;
