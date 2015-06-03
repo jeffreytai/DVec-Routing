@@ -172,15 +172,13 @@ void outputTable(struct router *table, bool isStable) {
 	}
 
 	if (!isStable) {
-	    // time_t ltime;
-	    // struct tm* timeinfo;
+	    time_t ltime;
+	    struct tm* timeinfo;
 
-	    // time(&ltime);
-	    // timeinfo = localtime(&ltime);
-	    // snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
-	    char* t;
-        t = getTime();
-	    fprintf(f, "\nTimestamp: %sDestination, Cost, Outgoing Port, Destination Port\n", t);
+	    time(&ltime);
+	    timeinfo = localtime(&ltime);
+	    snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+	    fprintf(f, "\nTimestamp: %sDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
 	} else {
 		fprintf(f, "\nTable in Stable State\nDestination, Cost, Outgoing Port, Destination Port\n");
 	}
@@ -247,16 +245,15 @@ void initializeOutputFiles(struct router **network) {
             if (f == NULL)
                 error("Error opening file");
             // Timestamp
-      //       time_t ltime;
-		    // struct tm* timeinfo;
+            time_t ltime;
+		    struct tm* timeinfo;
 
-		    // time(&ltime);
-		    // timeinfo = localtime(&ltime);
+		    time(&ltime);
+		    timeinfo = localtime(&ltime);
 
-      //       snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
-            char* t;
-            t = getTime();
-            fprintf(f, "Timestamp: %sDestination, Cost, Outgoing Port, Destination Port\n", t);
+            snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+
+            fprintf(f, "Timestamp: %sDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
             int i;
             for (i=0; i<NUMROUTERS; i++) {
                 fprintf(f, "%c %i %i %i\n",
