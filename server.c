@@ -207,7 +207,7 @@ void outputTable(struct router *table) {
  *
  * Updates table if possible. If table is changed, output to file.
  */
-void updateTable(struct router *currTable, struct router rcvdTable) {
+bool updateTable(struct router *currTable, struct router rcvdTable) {
 	bool isChanged = false;
 	int i;
 	for (i=0; i<NUMROUTERS; i++) {
@@ -230,7 +230,7 @@ void updateTable(struct router *currTable, struct router rcvdTable) {
 	if (isChanged) {
 		outputTable(currTable);
 	}
-	return;
+	return isChanged;
 }
 
 /* initializeOutputFiles()
@@ -531,6 +531,7 @@ int main(int argc, char *argv[])
 	char *hostaddrp; /* dotted decimal host address string */
 	int optval; /* flag value for setsockopt */
 	int n; /* message byte size */
+	int count;
 	fd_set socks;
 
 	/* for development */
@@ -698,13 +699,9 @@ int main(int argc, char *argv[])
 	printf("here is the router\n");
 	printRouter(&tableA);
 	*/
-	printRouter(&tableA);
+	
 	tableToBuffer(&tableA, &buf);
-	struct router testTable;
-	bufferToTable(&buf, &testTable);
-	printRouter(&testTable);
-	exit(0);
-//
+	
 	/*
 	struct router back;
 	bufferToTable(buf, &back);
@@ -723,6 +720,7 @@ int main(int argc, char *argv[])
 
 	/* loop: wait for datagram, then echo it */
 	while (1) {
+		count = 0;
 		printf("\n\n### Starting next iteration of while loop ###\n\n");
 		FD_ZERO(&socks);
 		for (i=0; i<NUMROUTERS; i++) {
@@ -751,7 +749,8 @@ int main(int argc, char *argv[])
 				printf("A's original table:\n");
 				printRouter(&tableA);
 
-				updateTable(&tableA, compTable);
+				if (updateTable(&tableA, compTable) == false)
+					count++;
 
 				printf("A's updated table:\n");
 				printRouter(&tableA);
@@ -792,7 +791,8 @@ int main(int argc, char *argv[])
 				printf("B's original table:\n");
 				printRouter(&tableB);
 
-				updateTable(&tableB, compTable);
+				if (updateTable(&tableB, compTable) == false)
+					count++;
 
 				printf("B's updated table:\n");
 				printRouter(&tableB);
@@ -825,7 +825,8 @@ int main(int argc, char *argv[])
 				printf("C's original table:\n");
 				printRouter(&tableC);
 
-				updateTable(&tableC, compTable);
+				if(updateTable(&tableC, compTable) == false)
+					count++;
 
 				printf("C's updated table:\n");
 				printRouter(&tableC);
@@ -857,7 +858,8 @@ int main(int argc, char *argv[])
 				printf("D's original table:\n");
 				printRouter(&tableD);
 
-				updateTable(&tableD, compTable);
+				if(updateTable(&tableD, compTable) == false)
+					count++;
 
 				printf("D's updated table:\n");
 				printRouter(&tableD);
@@ -891,7 +893,8 @@ int main(int argc, char *argv[])
 				printf("E's original table:\n");
 				printRouter(&tableE);
 
-				updateTable(&tableE, compTable);
+				if(updateTable(&tableE, compTable) == false)
+					count++;
 
 				printf("E's updated table:\n");
 				printRouter(&tableE);
@@ -924,7 +927,8 @@ int main(int argc, char *argv[])
 				printf("F's original table:\n");
 				printRouter(&tableF);
 
-				updateTable(&tableF, compTable);
+				if(updateTable(&tableF, compTable) == false)
+					count++;
 
 				printf("F's updated table:\n");
 				printRouter(&tableF);
@@ -945,7 +949,7 @@ int main(int argc, char *argv[])
 			}
 
 
-			if (stableState(network)) {
+			if (count == 6) {
 				break;
 			}
 
