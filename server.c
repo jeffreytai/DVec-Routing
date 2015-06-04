@@ -1156,7 +1156,7 @@ re_initialize:
 */
 // start is 0 thru 5
 	//in this case, start=1
-	printRouter(starter);
+	//printRouter(starter);
 	memset(buf, 0, BUFSIZE);
 	tableToBuffer(starter, &buf);
 //	tableToBuffer(&tableA, &buf);
@@ -1334,7 +1334,6 @@ re_initialize:
 			}
 			if (count >= NUMROUTERS * 2) {
 				for (i=0; i<NUMROUTERS; i++) {
-					printf("outputting stable %d\n", i);
 					outputTable(network[i], true);
 				}
 
