@@ -1111,22 +1111,59 @@ re_initialize:
 
 	clientlen = sizeof(clientaddr);
 	int serverlen = sizeof(serveraddr[0]);
-
+	int start;
 	/* begin by having ROUTERA send DV to one neighbor */
 	/* for this implementation, ROUTERA will send to ROUTERB */
-	int start;
+	struct router* starter;
+	switch (argv[1][0])
+	{
+		case 'A':
+			starter = &tableA;
+			start = INDEXA;
+			break;
+		case 'B':
+			starter = &tableB;
+			start = INDEXB;
+			break;
+		case 'C':
+			starter = &tableC;
+			start = INDEXC;
+			break;
+		case 'D':
+			starter = &tableD;
+			start = INDEXD;
+			break;
+		case 'E':
+			starter = &tableE;
+			start = INDEXE;
+			break;
+		case 'F':
+			starter = &tableF;
+			start = INDEXF;
+			break;
+	}
+//exit(0);
+
+/*
+
 	for (i=0; i<NUMROUTERS; i++) {
 		if (neighborMatrix.r[0][i] != -1) {
 			start = neighborMatrix.r[0][i];
 			break;
 		}
 	}
-	/* in this case, start=1 */
-
+*/
+// start is 0 thru 5
+	//in this case, start=1
+	printRouter(starter);
 	memset(buf, 0, BUFSIZE);
-	tableToBuffer(&tableA, &buf);
+	tableToBuffer(starter, &buf);
+//	tableToBuffer(&tableA, &buf);
 
-	n = sendto(sockfd[0], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[start], clientlen);
+//	printf("Starting router: %d %c\n", start - 'A', start);
+
+//	n = sendto(sockfd[start - 'A'], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[start], clientlen);
+	n = sendto(sockfd[start], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[start], clientlen);
 
 	int nsocks = max(sockfd[0], sockfd[1]);
 	for (i=2; i<NUMROUTERS; i++) {
@@ -1296,6 +1333,7 @@ re_initialize:
 			}
 			if (count >= NUMROUTERS * 2) {
 				for (i=0; i<NUMROUTERS; i++) {
+					printf("outputting stable %d\n", i);
 					outputTable(network[i], true);
 				}
 
