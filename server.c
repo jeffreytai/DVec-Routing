@@ -73,10 +73,10 @@ void printRouter(struct router* r)
  *
  * Prints out the given int buffer.
  */
-void printBuffer(int * buf)
+void printBuffer(int * buf, size_t size)
 {
 	int i;
-	for (i = 0; i < BUFSIZE; i++)
+	for (i = 0; i < size; i++)
 		printf("%d ", buf[i]);
 	printf("\n");
 }
@@ -349,8 +349,8 @@ bool updateTable(struct router *currTable, struct router rcvdTable) {
 void outputPacket(struct router *table, struct packet *p, bool isDestination) {
 	// write to output timestamp, src node, dst node, arrival UDP port, and outgoing UDP port
 	FILE *f = NULL;
-    int timeBufferSize = 64;
-    char timeBuffer[timeBufferSize];
+	int timeBufferSize = 64;
+	char timeBuffer[timeBufferSize];
 
 	switch (table->index) {
 		case INDEXA:
@@ -374,20 +374,20 @@ void outputPacket(struct router *table, struct packet *p, bool isDestination) {
 	}
 
 	time_t ltime;
-    struct tm* timeinfo;
+	struct tm* timeinfo;
 
-    time(&ltime);
-    timeinfo = localtime(&ltime);
-    snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+	time(&ltime);
+	timeinfo = localtime(&ltime);
+	snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
 
-    if (!isDestination) {
-	    int destIndex;
-	    char tname;
+	if (!isDestination) {
+		int destIndex;
+		char tname;
 
-	    destIndex = getDestPortIndex(table, routerToPort(p->dstNode));
-	    tname = tableName(table);
+		destIndex = getDestPortIndex(table, routerToPort(p->dstNode));
+		tname = tableName(table);
 
-	    fprintf(f, "\nReceived data packet:\nTimestamp: %s\nSource Node: %c\nDestination Node: %c\nArrival UDP Port: %i\nOutgoing UDP Port: %i\n", timeBuffer, p->srcNode, p->dstNode, routerToPort(tname), table->outgoingPorts[destIndex]);
+		fprintf(f, "\nReceived data packet:\nTimestamp: %s\nSource Node: %c\nDestination Node: %c\nArrival UDP Port: %i\nOutgoing UDP Port: %i\n", timeBuffer, p->srcNode, p->dstNode, routerToPort(tname), table->outgoingPorts[destIndex]);
 	} else {
 		fprintf(f, "\nCumulative information about data packet:\nTimestamp: %s\nMessage: %s\nSource Node: %c\nDestination Node: %c\nArrival (Destination) UDP Port: %i\n", timeBuffer, p->message, p->srcNode, p->dstNode, routerToPort(p->dstNode));
 	}
@@ -485,7 +485,7 @@ void forwardPacket(struct packet *p, struct router** network) {
  * Initializes the routing-outputX.txt files from the routing tables.
  */
 void initializeOutputFiles(struct router **network) {
-		char routerLetters[NUMROUTERS] = "ABCDEF";
+	char routerLetters[NUMROUTERS] = "ABCDEF";
 
     	int tableIndex = 0, timeBufferSize = 64, writeBufferSize = 1024;
 
@@ -493,41 +493,186 @@ void initializeOutputFiles(struct router **network) {
 		char writeBuffer[writeBufferSize];
 
         for ( ; tableIndex < 6; tableIndex++ ) {
-            char path[20];
-            snprintf(path, sizeof(path), "routing-output%c%s\0", routerLetters[tableIndex], ".txt");
+        	char path[20];
+		snprintf(path, sizeof(path), "routing-output%c%s\0", routerLetters[tableIndex], ".txt");
 
-            FILE *f = fopen(path, "w");
+        	FILE *f = fopen(path, "w");
 
-            if (f == NULL)
-                error("Error opening file");
-            // Timestamp
-            time_t ltime;
-		    struct tm* timeinfo;
+        	if (f == NULL)
+            		error("Error opening file");
+        	// Timestamp
+        	time_t ltime;
+		struct tm* timeinfo;
 
-		    time(&ltime);
-		    timeinfo = localtime(&ltime);
+		time(&ltime);
+		timeinfo = localtime(&ltime);
 
-            snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+        	snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
 
-            fprintf(f, "Timestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
-            int i;
-            for (i=0; i<NUMROUTERS; i++) {
-                fprintf(f, "%c %i %i %i\n",
-                    network[tableIndex]->otherRouters[i],
-                    network[tableIndex]->costs[i],
-                    network[tableIndex]->outgoingPorts[i],
-                    network[tableIndex]->destinationPorts[i]);
-            }
-            fclose(f);
+        	fprintf(f, "Timestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
+        	int i;
+        	for (i=0; i<NUMROUTERS; i++) {
+            		fprintf(f, "%c %i %i %i\n",
+                		network[tableIndex]->otherRouters[i],
+                		network[tableIndex]->costs[i],
+                		network[tableIndex]->outgoingPorts[i],
+                		network[tableIndex]->destinationPorts[i]);
+            	}
+        	fclose(f);
         }
         return;
+}
+
+/* reinitalizeTopologyFile
+ *
+ *
+ */
+void reinitializeTopologyFile(char killedRouter, int n)
+{
+	// read lines from topology file
+	// if any line has the killed router in it, make the link cost INT_MAX
+
+	FILE *f = fopen("sample.txt", "r");
+	if (f == NULL)
+		error("Error opening sample file");
+
+	char line[32];
+	char writebuf[512];
+	int canary = 0;
+	int linecount = 1;
+	bool changeCost = false;
+
+	while (fgets(line, 32, f) != NULL) {
+		char *ptr = strtok(line, ",");
+
+		if (ptr[0] == killedRouter) {
+			changeCost = true;
+			// change the path cost on this one
+		}
+
+		char *ptr2 = strtok(NULL, ",");
+
+		if (ptr2[0] == killedRouter) {
+			changeCost = true;
+			// change the path cost on this one
+		}
+	
+		char *ptrOP = strtok(NULL, ",");
+		char *ptrCost = strtok(NULL, "\n");
+
+		if (canary == 0)
+		{
+			strcpy(writebuf, ptr);
+			canary++;
+		}
+		else
+		{
+			strcat(writebuf, ptr);
+		}
+
+		strcat(writebuf, ",");
+		strcat(writebuf, ptr2);
+		strcat(writebuf, ",");
+		strcat(writebuf, ptrOP);
+		strcat(writebuf, ",");
+		strcat(writebuf, (changeCost ? "2147683647" : ptrCost));
+		// if not end of file)
+		if (linecount != 18) // number of lines in network topo file
+		{
+			strcat(writebuf, "\n");
+		}
+		changeCost = false;
+		linecount++;
+	}
+	fclose(f);
+	f = fopen("sample.txt", "w+");
+
+	// overwrite the file with the new write buffer contents
+	fprintf(f, "%s", writebuf);
+	fclose(f);
+}
+
+void reinitializeTables(struct router *tableA, struct router *tableB, struct router *tableC, struct router *tableD, struct router *tableE, struct router *tableF) {
+	int a;
+	struct router *rp;
+	int ind, val;
+	for (a = 0; a < NUMROUTERS; a++)
+	{		
+		tableA->otherRouters[a] = NULL;
+		tableB->otherRouters[a] = NULL;
+		tableC->otherRouters[a] = NULL;
+		tableD->otherRouters[a] = NULL;
+		tableE->otherRouters[a] = NULL;
+		tableF->otherRouters[a] = NULL;
+
+		tableA->costs[a] = INT_MAX;
+		tableB->costs[a] = INT_MAX;
+		tableC->costs[a] = INT_MAX;
+		tableD->costs[a] = INT_MAX;
+		tableE->costs[a] = INT_MAX;
+		tableF->costs[a] = INT_MAX;
+
+		tableA->destinationPorts[a] = NULL;
+		tableB->destinationPorts[a] = NULL;
+		tableC->destinationPorts[a] = NULL;
+		tableD->destinationPorts[a] = NULL;
+		tableE->destinationPorts[a] = NULL;
+		tableF->destinationPorts[a] = NULL;
+
+		tableA->outgoingPorts[a] = NULL;
+		tableB->outgoingPorts[a] = NULL;
+		tableC->outgoingPorts[a] = NULL;
+		tableD->outgoingPorts[a] = NULL;
+		tableE->outgoingPorts[a] = NULL;
+		tableF->outgoingPorts[a] = NULL;
+
+		switch (a)
+		{
+			
+			case 0:
+				rp = tableA;	
+				ind = INDEXA;
+				val = ROUTERA;
+				break;
+			case 1:
+				rp = tableB;
+				ind = INDEXB;
+				val = ROUTERB;
+				break;
+			case 2:
+				rp = tableC;
+				ind = INDEXC;
+				val = ROUTERC;
+				break;
+			case 3:
+				rp = tableD;
+				ind = INDEXD;
+				val = ROUTERD;
+				break;
+			case 4:
+				rp = tableE;
+				ind = INDEXE;
+				val = ROUTERE;
+				break;
+			case 5:
+				rp = tableF;
+				ind = INDEXF;
+				val = ROUTERF;
+				break;
+		}
+		rp->index = ind;
+		rp->otherRouters[a] = (char) ('A' + a);
+		rp->costs[a] = 0;
+		rp->destinationPorts[a] = val;
+		rp->outgoingPorts[a] = val;
+	}
 }
 
 /* initializeFromFile()
  *
  * Initializes the routing tables from the information in 'sample.txt'.
  */
-struct matrix initializeFromFile(struct router *tableA, struct router *tableB, struct router *tableC, struct router *tableD, struct router *tableE, struct router *tableF) {
+struct matrix initializeFromFile(struct router *tableA, struct router *tableB, struct router *tableC, struct router *tableD, struct router *tableE, struct router *tableF, int killedRouters[]) {
 	FILE *f = fopen("sample.txt", "r");
 	if (f == NULL)
 		error("Error opening sample file");
@@ -537,183 +682,208 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 	struct matrix neighborMatrix;
 	memset(neighborMatrix.r, -1, sizeof(int) * NUMROUTERS * NUMROUTERS);
 
-	char line[12];
-	while (fgets(line, 12, f) != NULL) {
+	char line[32];
+	while (fgets(line, 32, f) != NULL) {
 		char *ptr = strtok(line, ",");
-		if (strcmp(ptr, "A") == 0) {
+//		printf("%s %s killed!\n", ptr, killedRouters[0] ? "is" : "is not");
+		if (strcmp(ptr, "A") == 0 && !killedRouters[0]) {// and 'A' is not killed
 			ptr = strtok(NULL, ",");
 			char *ptrOP = strtok(NULL, ",");
 			char *ptrCost = strtok(NULL, ",");
-			switch (atoi(ptrOP)) {
-				case 10001:
-					tableA->otherRouters[atoi(ptrOP)-10000] = 'B';
-					numNeighbors[0]++;
-					break;
-				case 10002:
-					tableA->otherRouters[atoi(ptrOP)-10000] = 'C';
-					numNeighbors[0]++;
-					break;
-				case 10003:
-					tableA->otherRouters[atoi(ptrOP)-10000] = 'D';
-					numNeighbors[0]++;
-					break;
-				case 10004:
-					tableA->otherRouters[atoi(ptrOP)-10000] = 'E';
-					numNeighbors[0]++;
-					break;
-				case 10005:
-					tableA->otherRouters[atoi(ptrOP)-10000] = 'F';
-					numNeighbors[0]++;
-					break;
+
+			// if ptrCost == INT_MAX
+			//	
+			// if ptr is killed, dont update the table
+			//printf("%s %s killed!\n", ptr, killedRouters[ptr[0] - 'A'] ? "is" : "is not");
+			if (!killedRouters[ptr[0] - 'A'])
+			{
+				switch (atoi(ptrOP)) {
+					case 10001:
+						tableA->otherRouters[atoi(ptrOP)-10000] = 'B';
+						numNeighbors[0]++;
+						break;
+					case 10002:
+						tableA->otherRouters[atoi(ptrOP)-10000] = 'C';
+						numNeighbors[0]++;
+						break;
+					case 10003:
+						tableA->otherRouters[atoi(ptrOP)-10000] = 'D';
+						numNeighbors[0]++;
+						break;
+					case 10004:
+						tableA->otherRouters[atoi(ptrOP)-10000] = 'E';
+						numNeighbors[0]++;
+						break;
+					case 10005:
+						tableA->otherRouters[atoi(ptrOP)-10000] = 'F';
+						numNeighbors[0]++;
+						break;
+				}
+				tableA->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
+				tableA->outgoingPorts[atoi(ptrOP)-10000] = ROUTERA;
+				tableA->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 			}
-			tableA->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-			tableA->outgoingPorts[atoi(ptrOP)-10000] = ROUTERA;
-			tableA->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
-		} else if (strcmp(ptr, "B") == 0) {
+		} else if (strcmp(ptr, "B") == 0 && !killedRouters[1]) {
 			ptr = strtok(NULL, ",");
 			char *ptrOP = strtok(NULL, ",");
 			char *ptrCost = strtok(NULL, ",");
-			switch (atoi(ptrOP)) {
-				case 10000:
-					tableB->otherRouters[atoi(ptrOP)-10000] = 'A';
-					numNeighbors[1]++;
-					break;
-				case 10002:
-					tableB->otherRouters[atoi(ptrOP)-10000] = 'C';
-					numNeighbors[1]++;
-					break;
-				case 10003:
-					tableB->otherRouters[atoi(ptrOP)-10000] = 'D';
-					numNeighbors[1]++;
-					break;
-				case 10004:
-					tableB->otherRouters[atoi(ptrOP)-10000] = 'E';
-					numNeighbors[1]++;
-					break;
-				case 10005:
-					tableB->otherRouters[atoi(ptrOP)-10000] = 'F';
-					numNeighbors[1]++;
-					break;
+//			printf("\n\n%s\n\n", ptrCost);
+			if (!killedRouters[ptr[0] - 'A'])
+			{
+				switch (atoi(ptrOP)) {
+					case 10000:
+						tableB->otherRouters[atoi(ptrOP)-10000] = 'A';
+						numNeighbors[1]++;
+						break;
+					case 10002:
+						tableB->otherRouters[atoi(ptrOP)-10000] = 'C';
+						numNeighbors[1]++;
+						break;
+					case 10003:
+						tableB->otherRouters[atoi(ptrOP)-10000] = 'D';
+						numNeighbors[1]++;
+						break;
+					case 10004:
+						tableB->otherRouters[atoi(ptrOP)-10000] = 'E';
+						numNeighbors[1]++;
+						break;
+					case 10005:
+						tableB->otherRouters[atoi(ptrOP)-10000] = 'F';
+						numNeighbors[1]++;
+						break;
+				}
+				tableB->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
+				tableB->outgoingPorts[atoi(ptrOP)-10000] = ROUTERB;
+				tableB->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);		
 			}
-			tableB->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-			tableB->outgoingPorts[atoi(ptrOP)-10000] = ROUTERB;
-			tableB->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);		
-		} else if (strcmp(ptr, "C") == 0) {
+		} else if (strcmp(ptr, "C") == 0 && !killedRouters[2]) {
 			ptr = strtok(NULL, ",");
 			char *ptrOP = strtok(NULL, ",");
 			char *ptrCost = strtok(NULL, ",");
-			switch (atoi(ptrOP)) {
-				case 10000:
-					tableC->otherRouters[atoi(ptrOP)-10000] = 'A';
-					numNeighbors[2]++;
-					break;
-				case 10001:
-					tableC->otherRouters[atoi(ptrOP)-10000] = 'B';
-					numNeighbors[2]++;
-					break;
-				case 10003:
-					tableC->otherRouters[atoi(ptrOP)-10000] = 'D';
-					numNeighbors[2]++;
-					break;
-				case 10004:
-					tableC->otherRouters[atoi(ptrOP)-10000] = 'E';
-					numNeighbors[2]++;
-					break;
-				case 10005:
-					tableC->otherRouters[atoi(ptrOP)-10000] = 'F';
-					numNeighbors[2]++;
-					break;
+			if (!killedRouters[ptr[0] - 'A'])
+			{
+				switch (atoi(ptrOP)) {
+					case 10000:
+						tableC->otherRouters[atoi(ptrOP)-10000] = 'A';
+						numNeighbors[2]++;
+						break;
+					case 10001:
+						tableC->otherRouters[atoi(ptrOP)-10000] = 'B';
+						numNeighbors[2]++;
+						break;
+					case 10003:
+						tableC->otherRouters[atoi(ptrOP)-10000] = 'D';
+						numNeighbors[2]++;
+						break;
+					case 10004:
+						tableC->otherRouters[atoi(ptrOP)-10000] = 'E';
+						numNeighbors[2]++;
+						break;
+					case 10005:
+						tableC->otherRouters[atoi(ptrOP)-10000] = 'F';
+						numNeighbors[2]++;
+						break;
+				}
+				tableC->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
+				tableC->outgoingPorts[atoi(ptrOP)-10000] = ROUTERC;
+				tableC->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 			}
-			tableC->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-			tableC->outgoingPorts[atoi(ptrOP)-10000] = ROUTERC;
-			tableC->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
-		} else if (strcmp(ptr, "D") == 0) {
+		} else if (strcmp(ptr, "D") == 0 && !killedRouters[3]) {
 			ptr = strtok(NULL, ",");
 			char *ptrOP = strtok(NULL, ",");
 			char *ptrCost = strtok(NULL, ",");
-			switch (atoi(ptrOP)) {
-				case 10000:
-					tableD->otherRouters[atoi(ptrOP)-10000] = 'A';
-					numNeighbors[3]++;
-					break;
-				case 10001:
-					tableD->otherRouters[atoi(ptrOP)-10000] = 'B';
-					numNeighbors[3]++;
-					break;
-				case 10002:
-					tableD->otherRouters[atoi(ptrOP)-10000] = 'C';
-					numNeighbors[3]++;
-					break;
-				case 10004:
-					tableD->otherRouters[atoi(ptrOP)-10000] = 'E';
-					numNeighbors[3]++;
-					break;
-				case 10005:
-					tableD->otherRouters[atoi(ptrOP)-10000] = 'F';
-					numNeighbors[3]++;
-					break;
+			if (!killedRouters[ptr[0] - 'A'])
+			{
+				switch (atoi(ptrOP)) {
+					case 10000:
+						tableD->otherRouters[atoi(ptrOP)-10000] = 'A';
+						numNeighbors[3]++;
+						break;
+					case 10001:
+						tableD->otherRouters[atoi(ptrOP)-10000] = 'B';
+						numNeighbors[3]++;
+						break;
+					case 10002:
+						tableD->otherRouters[atoi(ptrOP)-10000] = 'C';
+						numNeighbors[3]++;
+						break;
+					case 10004:
+						tableD->otherRouters[atoi(ptrOP)-10000] = 'E';
+						numNeighbors[3]++;
+						break;
+					case 10005:
+						tableD->otherRouters[atoi(ptrOP)-10000] = 'F';
+						numNeighbors[3]++;
+						break;
+				}
+				tableD->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
+				tableD->outgoingPorts[atoi(ptrOP)-10000] = ROUTERD;
+				tableD->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 			}
-			tableD->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-			tableD->outgoingPorts[atoi(ptrOP)-10000] = ROUTERD;
-			tableD->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
-		} else if (strcmp(ptr, "E") == 0) {
+		} else if (strcmp(ptr, "E") == 0 && !killedRouters[4]) {
 			ptr = strtok(NULL, ",");
 			char *ptrOP = strtok(NULL, ",");
 			char *ptrCost = strtok(NULL, ",");
-			switch (atoi(ptrOP)) {
-				case 10000:
-					tableE->otherRouters[atoi(ptrOP)-10000] = 'A';
-					numNeighbors[4]++;
-					break;
-				case 10001:
-					tableE->otherRouters[atoi(ptrOP)-10000] = 'B';
-					numNeighbors[4]++;
-					break;
-				case 10002:
-					tableE->otherRouters[atoi(ptrOP)-10000] = 'C';
-					numNeighbors[4]++;
-					break;
-				case 10003:
-					tableE->otherRouters[atoi(ptrOP)-10000] = 'D';
-					numNeighbors[4]++;
-					break;
-				case 10005:
-					tableE->otherRouters[atoi(ptrOP)-10000] = 'F';
-					numNeighbors[4]++;
-					break;
+			if (!killedRouters[ptr[0] - 'A'])
+			{
+				switch (atoi(ptrOP)) {
+					case 10000:
+						tableE->otherRouters[atoi(ptrOP)-10000] = 'A';
+						numNeighbors[4]++;
+						break;
+					case 10001:
+						tableE->otherRouters[atoi(ptrOP)-10000] = 'B';
+						numNeighbors[4]++;
+						break;
+					case 10002:
+						tableE->otherRouters[atoi(ptrOP)-10000] = 'C';
+						numNeighbors[4]++;
+						break;
+					case 10003:
+						tableE->otherRouters[atoi(ptrOP)-10000] = 'D';
+						numNeighbors[4]++;
+						break;
+					case 10005:
+						tableE->otherRouters[atoi(ptrOP)-10000] = 'F';
+						numNeighbors[4]++;
+						break;
+				}
+				tableE->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
+				tableE->outgoingPorts[atoi(ptrOP)-10000] = ROUTERE;
+				tableE->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 			}
-			tableE->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-			tableE->outgoingPorts[atoi(ptrOP)-10000] = ROUTERE;
-			tableE->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
-		} else if (strcmp(ptr, "F") == 0) {
+		} else if (strcmp(ptr, "F") == 0 && !killedRouters[5]) {
 			ptr = strtok(NULL, ",");
 			char *ptrOP = strtok(NULL, ",");
 			char *ptrCost = strtok(NULL, ",");
-			switch (atoi(ptrOP)) {
-				case 10000:
-					tableF->otherRouters[atoi(ptrOP)-10000] = 'A';
-					numNeighbors[5]++;
-					break;
-				case 10001:
-					tableF->otherRouters[atoi(ptrOP)-10000] = 'B';
-					numNeighbors[5]++;
-					break;
-				case 10002:
-					tableF->otherRouters[atoi(ptrOP)-10000] = 'C';
-					numNeighbors[5]++;
-					break;
-				case 10003:
-					tableF->otherRouters[atoi(ptrOP)-10000] = 'D';
-					numNeighbors[5]++;
-					break;
-				case 10004:
-					tableF->otherRouters[atoi(ptrOP)-10000] = 'E';
-					numNeighbors[5]++;
-					break;
+			if (!killedRouters[ptr[0] - 'A'])
+			{
+				switch (atoi(ptrOP)) {
+					case 10000:
+						tableF->otherRouters[atoi(ptrOP)-10000] = 'A';
+						numNeighbors[5]++;
+						break;
+					case 10001:
+						tableF->otherRouters[atoi(ptrOP)-10000] = 'B';
+						numNeighbors[5]++;
+						break;
+					case 10002:
+						tableF->otherRouters[atoi(ptrOP)-10000] = 'C';
+						numNeighbors[5]++;
+						break;
+					case 10003:
+						tableF->otherRouters[atoi(ptrOP)-10000] = 'D';
+						numNeighbors[5]++;
+						break;
+					case 10004:
+						tableF->otherRouters[atoi(ptrOP)-10000] = 'E';
+						numNeighbors[5]++;
+						break;
+				}
+				tableF->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
+				tableF->outgoingPorts[atoi(ptrOP)-10000] = ROUTERF;
+				tableF->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 			}
-			tableF->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-			tableF->outgoingPorts[atoi(ptrOP)-10000] = ROUTERF;
-			tableF->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 		}
 	}
 
@@ -783,9 +953,17 @@ int main(int argc, char *argv[])
 	int count;
 	fd_set socks;
 	bool stableState = false;
+int nKills = 0;
+        char * filepath = "sample.txt";
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 50000;
+	int killedRouters[NUMROUTERS] = {0};
 
+	//printBuffer(killedRouters, NUMROUTERS);
 	/* for testing */
-
+	struct router tableA, tableB, tableC, tableD, tableE, tableF;
+/*
 	struct router tableA = {
 		INDEXA,
 		{   'A',     NULL,    NULL,    NULL,    NULL,    NULL   },
@@ -793,6 +971,17 @@ int main(int argc, char *argv[])
 		{ ROUTERA,   NULL,    NULL,    NULL,    NULL,    NULL   },
 		{ ROUTERA,   NULL,    NULL,    NULL,    NULL,    NULL   }
 	};
+*/
+/*
+	struct router tableA = {
+		INDEXA,
+        	{   'A',     NULL,    NULL,    NULL,    NULL,    NULL   },
+        	{    0,     INT_MAX, INT_MAX, INT_MAX, INT_MAX, INT_MAX },
+        	{ ROUTERA,   NULL,    NULL,    NULL,    NULL,    NULL   },
+        	{ ROUTERA,   NULL,    NULL,    NULL,    NULL,    NULL   }
+	};
+
+
 	struct router tableB = {
 		INDEXB,
 		{  NULL,     'B',    NULL,    NULL,    NULL,    NULL    },
@@ -828,10 +1017,7 @@ int main(int argc, char *argv[])
 		{  NULL,     NULL,    NULL,    NULL,    NULL,  ROUTERF  },
 		{  NULL,     NULL,    NULL,    NULL,    NULL,  ROUTERF  }
 	};
-
-	struct matrix neighborMatrix = initializeFromFile(&tableA, &tableB, &tableC, &tableD, &tableE, &tableF);	
-	/* end testing */
-
+*/
 	struct router **network = malloc(NUMROUTERS * sizeof(struct router*));
 	int i;
 	for (i=0; i<NUMROUTERS; i++) {
@@ -843,7 +1029,45 @@ int main(int argc, char *argv[])
 	network[3] = &tableD;
 	network[4] = &tableE;
 	network[5] = &tableF;
+/*
+	for(i=0;i < NUMROUTERS; i++)
+	{
+		printRouter(network[i]);
+	}
+*/
+re_initialize:
+/*
+	if (nKills > 0)
+	{
+		printf("\nenter\n");
+	}
+*/
+	reinitializeTables(&tableA, &tableB, &tableC, &tableD, &tableE, &tableF);
+/*
+	printf("***\n***AFTER REINIT:***\n***");	
+	for(i=0;i < NUMROUTERS; i++)
+	{
+		printRouter(network[i]);
+	}
+*/
+	struct matrix neighborMatrix = initializeFromFile(&tableA, &tableB, &tableC, &tableD, &tableE, &tableF, killedRouters);	
+	/* end testing */
+/*
+	printf("***\n***SECOND PRINT:***\n***");	
 
+	for(i=0;i < NUMROUTERS; i++)
+	{
+		printRouter(network[i]);
+	}
+
+	int g;
+	for (i=0; i < NUMROUTERS; i++)
+	{
+		for (g=0; g < NUMROUTERS; g++)
+			printf("%d\t", neighborMatrix.r[i][g]);	
+		printf("\n");
+	}
+*/
 	initializeOutputFiles(network);
 	for (i=0; i<NUMROUTERS; i++) {
 		/* create parent socket */
@@ -853,6 +1077,7 @@ int main(int argc, char *argv[])
 		/* server can be rerun immediately after killed */
 		optval = 1;
 		setsockopt(sockfd[i], SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
+		setsockopt(sockfd[i], SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
 
 		/* build server's Internet address */
 		bzero((char *) &serveraddr[i], sizeof(serveraddr[i]));
@@ -909,9 +1134,9 @@ int main(int argc, char *argv[])
 	}
 	int counterdd = 0;
 	count = 0;
+	printf("Stabilizing network...");
 	/* loop: wait for datagram, then echo it */
 	while (1) {
-	//	count = 0;
 		FD_ZERO(&socks);
 		for (i=0; i<NUMROUTERS; i++) {
 			FD_SET(sockfd[i], &socks);
@@ -929,24 +1154,10 @@ int main(int argc, char *argv[])
 				struct router compTable;
 				bufferToTable(buf, &compTable);
 
-				// printf("Received table:\n");
-				// printRouter(&compTable);
-				// int l;
-				// for (l = 0; l < NUMROUTERS; l++)
-				// {
-				// 	printf("%d\n", compTable.destinationPorts[l]);
-				// }
-
-				// printf("A's original table:\n");
-				// printRouter(&tableA);
-
 				if (updateTable(&tableA, compTable) == false)
 					count++;
 				else
 					count = 0;
-
-				// printf("A's updated table:\n");
-				// printRouter(&tableA);
 
 				tableToBuffer(&tableA, &buf);
 
@@ -955,12 +1166,10 @@ int main(int argc, char *argv[])
 						n = sendto(sockfd[0], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[0][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
-						// printf("Reached here A - and neighborMatrix[0][%i]: Value = %i\n", i, neighborMatrix.r[0][i]);
 					}
 				}
 			}
 
-			// else
 			if (FD_ISSET(sockfd[1], &socks)) {
 				if ( (n = recvfrom(sockfd[1], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 				{
@@ -969,25 +1178,12 @@ int main(int argc, char *argv[])
 				}
 
 				struct router compTable;
-
-				// printBuffer(buf);
-				// printf("%d %d\n\n\n", sizeof(buf), sizeof(compTable));
-
 				
 				bufferToTable(&buf, &compTable);
-
-				// printf("Received table:\n");
-				// printRouter(&compTable);
-				// printf("B's original table:\n");
-				// printRouter(&tableB);
-
 				if (updateTable(&tableB, compTable) == false)
 					count++;
 				else
 					count = 0;
-
-				// printf("B's updated table:\n");
-				// printRouter(&tableB);
 
 				tableToBuffer(&tableB, &buf);
 
@@ -996,13 +1192,11 @@ int main(int argc, char *argv[])
 						n = sendto(sockfd[1], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[1][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
-						//printf("Reached here B - and neighborMatrix[1][%i]: Value = %i\n", i, neighborMatrix.r[1][i]);
 					}
 				}
 			}
 
 
-			// else
 			if (FD_ISSET(sockfd[2], &socks)) {
 				if ( (n = recvfrom(sockfd[2], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
@@ -1011,18 +1205,10 @@ int main(int argc, char *argv[])
 
 				bufferToTable(&buf, &compTable);
 
-				// printf("Received table:\n");
-				// printRouter(&compTable);
-				// printf("C's original table:\n");
-				// printRouter(&tableC);
-
 				if(updateTable(&tableC, compTable) == false)
 					count++;
 				else
 					count = 0;
-
-				// printf("C's updated table:\n");
-				// printRouter(&tableC);
 
 				tableToBuffer(&tableC, &buf);
 
@@ -1031,11 +1217,9 @@ int main(int argc, char *argv[])
 						n = sendto(sockfd[2], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[2][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
-						//printf("Reached here C - and neighborMatrix[2][%i]: Value = %i\n", i, neighborMatrix.r[2][i]);
 					}
 				}
 			}
-			//else
 			if (FD_ISSET(sockfd[3], &socks)) {
 				if ( (n = recvfrom(sockfd[3], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
@@ -1044,18 +1228,11 @@ int main(int argc, char *argv[])
 
 				bufferToTable(&buf, &compTable);
 
-				// printf("Received table:\n");
-				// printRouter(&compTable);
-				// printf("D's original table:\n");
-				// printRouter(&tableD);
-
 				if(updateTable(&tableD, compTable) == false)
 					count++;
 				else
 					count = 0;
 
-				// printf("D's updated table:\n");
-				// printRouter(&tableD);
 
 				tableToBuffer(&tableD, &buf);
 				
@@ -1064,11 +1241,9 @@ int main(int argc, char *argv[])
 						n = sendto(sockfd[3], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[3][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
-						//printf("Reached here D - and neighborMatrix[3][%i]: Value = %i\n", i, neighborMatrix.r[3][i]);
 					}
 				}
 			}
-			// else
 			if (FD_ISSET(sockfd[4], &socks)) {
 				if ( (n = recvfrom(sockfd[4], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
@@ -1077,18 +1252,12 @@ int main(int argc, char *argv[])
 
 				bufferToTable(&buf, &compTable);
 
-				// printf("Received table:\n");
-				// printRouter(&compTable);
-				// printf("E's original table:\n");
-				// printRouter(&tableE);
 
 				if(updateTable(&tableE, compTable) == false)
 					count++;
 				else
 					count = 0;
 
-				// printf("E's updated table:\n");
-				// printRouter(&tableE);
 
 				tableToBuffer(&tableE, &buf);
 
@@ -1097,11 +1266,9 @@ int main(int argc, char *argv[])
 						n = sendto(sockfd[4], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[4][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
-						//printf("Reached here E - and neighborMatrix[4][%i]: Value = %i\n", i, neighborMatrix.r[4][i]);
 					}
 				}
 			}
-			// else
 			if (FD_ISSET(sockfd[5], &socks)) {
 				if ( (n = recvfrom(sockfd[5], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
@@ -1110,18 +1277,12 @@ int main(int argc, char *argv[])
 
 				bufferToTable(&buf, &compTable);
 
-				// printf("Received table:\n");
-				// printRouter(&compTable);
-				// printf("F's original table:\n");
-				// printRouter(&tableF);
 
 				if(updateTable(&tableF, compTable) == false)
 					count++;
 				else
 					count = 0;
 
-				// printf("F's updated table:\n");
-				// printRouter(&tableF);
 
 				tableToBuffer(&tableF, &buf);
 
@@ -1130,7 +1291,6 @@ int main(int argc, char *argv[])
 						n = sendto(sockfd[5], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[5][i]], clientlen);
 						if (n < 0)
 							error("Error sending to client");
-						//printf("Reached here F - and neighborMatrix[5][%i]: Value = %i\n", i, neighborMatrix.r[5][i]);
 					}
 				}
 			}
@@ -1153,65 +1313,57 @@ int main(int argc, char *argv[])
 				// printRouter(&tableE);
 				// printf("\n\nROUTER F:\n\n");
 				// printRouter(&tableF);
-				printf("\n\nWhat do you want to do?\n\n1) kill router\n2) send packet\n\n");
+				printf("[OK]\n\n");
+choose_action:
+				printf("Press 1<ENTER> to kill a router\nPress 2<ENTER> to send packet across the network\n-> ");
 				// steady state
 				// scan for input to send a packe
-				int option = 6; // kill router, or send packet from x to y
-				char toKill = NULL;
-				char srcRouter, dstRouter;
+				int option; // kill router, or send packet from x to y
+				char toKill, srcRouter, dstRouter;
 				scanf("%d", &option);
 				switch (option)
 				{
 					case 1:
-						printf("Type the router number to kill:\n");
+						printf("Label of router to kill (A-F):\n-> ");
 						scanf("\n%c", &toKill);
-						printf("Killing router %c\n", toKill);
-						// set the link cost to the specified router to INT_MAX
-						// for each router
-							// send their new routing tables to each neighbor
-						
-						tableA.costs[toKill - 'a'] = INT_MAX;
-						tableB.costs[toKill - 'a'] = INT_MAX;
-						tableC.costs[toKill - 'a'] = INT_MAX;
-						tableD.costs[toKill - 'a'] = INT_MAX;
-						tableE.costs[toKill - 'a'] = INT_MAX;
-						tableF.costs[toKill - 'a'] = INT_MAX;
-						// resend all of the routers DVs to each neighbor
-						for (i = 0; i < NUMROUTERS; i++)
-						{
-							if (toKill - 'a' == i)
-								continue;
-							// send dv to all of i's numbers
-							// put ith table into a buffer and send to neighbors
-							struct router * toSend = network[i];
-							tableToBuffer(toSend, buf);
-							int j;
-							for (j = 0; j < NUMROUTERS; j++)
-							{
-								if (neighborMatrix.r[i][j] != -1)
-								{
-									// FLUSH the neighbors socket
-//									while (0 < recvfrom(sockfd[], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)))
-									n = sendto(sockfd[i], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&serveraddr[neighborMatrix.r[i][j]], clientlen);
-									if (n < 0)
-										error("Error sending to client");
-								}
-							}
+						printf("Killing router %c\n", toupper(toKill));
+						int k, n;
+/*
+                                		struct timeval tv;
+                                		tv.tv_usec = 500000;
+*/
+                                		for (k = 0; k < NUMROUTERS; k++)
+                                		{
+							printf("Clearing Router %c's input buffers...", (char) k + 'A');
+                                        		FD_ZERO(&socks);
+                                        		FD_SET(sockfd[k], &socks);
+                                                        while ( (n = recvfrom(sockfd[k], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) > 0)
+                                                        {
+//                                                                printf("%d %d\n", k, n);
+                                                        }
+							printf("[OK]\n");
 						}
+						reinitializeTopologyFile(toupper(toKill), nKills);
+						killedRouters[toupper(toKill) - 'A'] = 1;
+						nKills++;
+						goto re_initialize;
 
+						// will never reach this point
 						break;
 					case 2:
-						printf("Type [SRC_ROUTER]\n");
+						printf("Label of source router (A-F):\n-> ");
 						scanf("%c", &srcRouter);
 						srcRouter = getchar();
 						srcRouter = toupper(srcRouter);
-						printf("Type [DST_ROUTER]\n");
+						printf("Label of destination router (A-F):\n-> ");
 						scanf("%c", &dstRouter);
 						dstRouter = getchar();
 						dstRouter = toupper(dstRouter);
-						printf("Routing a packet from Router %c to Router %c...\n", srcRouter, dstRouter);
+						printf("Routing a packet from Router %c to Router %c...", srcRouter, dstRouter);
 						struct packet p = { 'd', "message", srcRouter, dstRouter, 0, 0 };
 						forwardPacket(&p, network);
+						printf("[OK]\n\n");
+						goto choose_action;
 						break;
 				} 
 				break;
