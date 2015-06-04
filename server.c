@@ -98,9 +98,10 @@ void error(char *msg) {
 char* getTime() {
 	struct timeval tval;
 	struct tm* ptm;
-	char time_string[40];
+	char time_string[40] = {'\0'};
 	long milliseconds;
-	char t[50];
+	char t[512] = {'\0'};
+//	return t;
 
 	gettimeofday(&tval, NULL);
 	ptm = localtime(&tval.tv_sec);
@@ -961,7 +962,9 @@ int nKills = 0;
         tv.tv_sec = 0;
         tv.tv_usec = 50000;
 	int killedRouters[NUMROUTERS] = {0};
-
+//	printf("gettime\n");
+//	getTime();
+//	exit(0);
 	//printBuffer(killedRouters, NUMROUTERS);
 	/* for testing */
 	struct router tableA, tableB, tableC, tableD, tableE, tableF;
@@ -1353,7 +1356,7 @@ re_initialize:
 				// printRouter(&tableF);
 				printf("[OK]\n\n");
 choose_action:
-				printf("Press 1<ENTER> to kill a router\nPress 2<ENTER> to send packet across the network\nPress 3<ENTER> to exit\n-> ");
+				printf("Press 1<ENTER> to kill a router\nPress 2<ENTER> to send packet across the network\nPress 3<ENTER> to profile the network\nPress 4<ENTER> to exit\n-> ");
 				// steady state
 				// scan for input to send a packe
 				int option, k; // kill router, or send packet from x to y
@@ -1404,6 +1407,15 @@ choose_action:
 						goto choose_action;
 						break;
 					case 3:
+						printf("Routing tables:\n\n");
+						for (k = 0; k < NUMROUTERS; k++)
+						{
+							printf("\nRouter %c:\n\n", 'A' + k);
+							printRouter(network[k]);
+						}
+						goto choose_action;
+						break;
+					case 4:
 						printf("Killing all routers.\n");
 						
 /*
