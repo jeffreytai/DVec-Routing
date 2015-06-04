@@ -202,6 +202,7 @@ void outputTable(struct router *table, bool isStable) {
     		table->outgoingPorts[i],
     		table->destinationPorts[i]);
     }
+	fclose(f);
     return;
 }
 
