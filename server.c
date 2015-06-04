@@ -391,6 +391,7 @@ void outputPacket(struct router *table, struct packet *p, bool isDestination) {
 		fprintf(f, "\nReceived data packet:\nTimestamp: %s\nSource Node: %c\nDestination Node: %c\nArrival UDP Port: %i\nOutgoing UDP Port: %i\n", timeBuffer, p->srcNode, p->dstNode, routerToPort(tname), table->outgoingPorts[destIndex]);
 	} else {
 		fprintf(f, "\nCumulative information about data packet:\nTimestamp: %s\nMessage: %s\nSource Node: %c\nDestination Node: %c\nArrival (Destination) UDP Port: %i\n", timeBuffer, p->message, p->srcNode, p->dstNode, routerToPort(p->dstNode));
+	fclose(f);
 	}
 }
 
@@ -576,7 +577,7 @@ void reinitializeTopologyFile(char killedRouter, int n)
 		strcat(writebuf, ",");
 		strcat(writebuf, ptrOP);
 		strcat(writebuf, ",");
-		strcat(writebuf, (changeCost ? "2147683647" : ptrCost));
+		strcat(writebuf, (changeCost ? "2147683647"/*"1000000"*/ : ptrCost));
 		// if not end of file)
 		if (linecount != 18) // number of lines in network topo file
 		{
@@ -1353,10 +1354,10 @@ re_initialize:
 				// printRouter(&tableF);
 				printf("[OK]\n\n");
 choose_action:
-				printf("Press 1<ENTER> to kill a router\nPress 2<ENTER> to send packet across the network\n-> ");
+				printf("Press 1<ENTER> to kill a router\nPress 2<ENTER> to send packet across the network\nPress 3<ENTER> to exit\n-> ");
 				// steady state
 				// scan for input to send a packe
-				int option; // kill router, or send packet from x to y
+				int option, k; // kill router, or send packet from x to y
 				char toKill, srcRouter, dstRouter;
 				scanf("%d", &option);
 				switch (option)
@@ -1365,7 +1366,7 @@ choose_action:
 						printf("Label of router to kill (A-F):\n-> ");
 						scanf("\n%c", &toKill);
 						printf("Killing router %c\n", toupper(toKill));
-						int k, n;
+						int n;
 /*
                                 		struct timeval tv;
                                 		tv.tv_usec = 500000;
@@ -1403,6 +1404,26 @@ choose_action:
 						printf("[OK]\n\n");
 						goto choose_action;
 						break;
+					case 3:
+						printf("Killing all routers.\n");
+						
+/*
+                                		struct timeval tv;
+                                		tv.tv_usec = 500000;
+*/
+                                		for (k = 0; k < NUMROUTERS; k++)
+                                		{
+							printf("Clearing Router %c's input buffers...", (char) k + 'A');
+                                        		FD_ZERO(&socks);
+                                        		FD_SET(sockfd[k], &socks);
+                                                        while ( (n = recvfrom(sockfd[k], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) > 0)
+                                                        {
+//                                                                printf("%d %d\n", k, n);
+                                                        }
+							printf("[OK]\n");
+						}
+						break;
+						
 				} 
 				break;
 			}
