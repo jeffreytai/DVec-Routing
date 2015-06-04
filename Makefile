@@ -1,5 +1,5 @@
-server: server.c
-	gcc -w -o server server.c
+router: my-router.c
+	gcc -w -o router my-router.c
 
 clean:
-	rm -f server routing-outputA.txt routing-outputB.txt routing-outputD.txt routing-outputE.txt routing-outputF.txt 
+	rm -f router routing-outputA.txt routing-outputB.txt routing-outputC.txt routing-outputD.txt routing-outputE.txt routing-outputF.txt 
