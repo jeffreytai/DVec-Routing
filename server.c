@@ -101,7 +101,6 @@ char* getTime() {
 	char time_string[40] = {'\0'};
 	long milliseconds;
 	char t[512] = {'\0'};
-//	return t;
 
 	gettimeofday(&tval, NULL);
 	ptm = localtime(&tval.tv_sec);
@@ -956,16 +955,13 @@ int main(int argc, char *argv[])
 	int count;
 	fd_set socks;
 	bool stableState = false;
-int nKills = 0;
-        char * filepath = "sample.txt";
-        struct timeval tv;
-        tv.tv_sec = 0;
-        tv.tv_usec = 50000;
+	int nKills = 0;
+    char * filepath = "sample.txt";
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 50000;
 	int killedRouters[NUMROUTERS] = {0};
-//	printf("gettime\n");
-//	getTime();
-//	exit(0);
-	//printBuffer(killedRouters, NUMROUTERS);
+
 	/* for testing */
 	struct router tableA, tableB, tableC, tableD, tableE, tableF;
 /*
