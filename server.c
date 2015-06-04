@@ -686,7 +686,7 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 	char line[32];
 	while (fgets(line, 32, f) != NULL) {
 		char *ptr = strtok(line, ",");
-//		printf("%s %s killed!\n", ptr, killedRouters[0] ? "is" : "is not");
+		// printf("%s %s killed!\n", ptr, killedRouters[0] ? "is" : "is not");
 		if (strcmp(ptr, "A") == 0 && !killedRouters[0]) {// and 'A' is not killed
 			ptr = strtok(NULL, ",");
 			char *ptrOP = strtok(NULL, ",");
@@ -728,7 +728,7 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 			ptr = strtok(NULL, ",");
 			char *ptrOP = strtok(NULL, ",");
 			char *ptrCost = strtok(NULL, ",");
-//			printf("\n\n%s\n\n", ptrCost);
+			// printf("\n\n%s\n\n", ptrCost);
 			if (!killedRouters[ptr[0] - 'A'])
 			{
 				switch (atoi(ptrOP)) {
@@ -1234,7 +1234,6 @@ re_initialize:
 				}
 			}
 
-
 			if (FD_ISSET(sockfd[2], &socks)) {
 				if ( (n = recvfrom(sockfd[2], buf, BUFSIZE*sizeof(int), 0, (struct sockaddr *)&clientaddr, &clientlen)) < 0 )
 					error("Error receiving datagram from client\n");
@@ -1406,7 +1405,6 @@ choose_action:
 				} 
 				break;
 			}
-
 		}
 	}
 }
