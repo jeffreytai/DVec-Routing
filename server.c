@@ -391,8 +391,8 @@ void outputPacket(struct router *table, struct packet *p, bool isDestination) {
 		fprintf(f, "\nReceived data packet:\nTimestamp: %s\nSource Node: %c\nDestination Node: %c\nArrival UDP Port: %i\nOutgoing UDP Port: %i\n", timeBuffer, p->srcNode, p->dstNode, routerToPort(tname), table->outgoingPorts[destIndex]);
 	} else {
 		fprintf(f, "\nCumulative information about data packet:\nTimestamp: %s\nMessage: %s\nSource Node: %c\nDestination Node: %c\nArrival (Destination) UDP Port: %i\n", timeBuffer, p->message, p->srcNode, p->dstNode, routerToPort(p->dstNode));
-	fclose(f);
 	}
+	fclose(f);
 }
 
 /* routerToTable()
