@@ -183,13 +183,14 @@ void outputTable(struct router *table, bool isStable) {
 	}
 
 	if (!isStable) {
-	    time_t ltime;
-	    struct tm* timeinfo;
+	    // time_t ltime;
+	    // struct tm* timeinfo;
 
-	    time(&ltime);
-	    timeinfo = localtime(&ltime);
-	    snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
-	    fprintf(f, "\nTimestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
+	    // time(&ltime);
+	    // timeinfo = localtime(&ltime);
+	    // snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+	    char *t = getTime();
+	    fprintf(f, "\nTimestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", t);
 	} else {
 		fprintf(f, "\nTable in Stable State\nDestination, Cost, Outgoing Port, Destination Port\n");
 	}
@@ -374,13 +375,14 @@ void outputPacket(struct router *table, struct packet *p, bool isDestination) {
 			break;
 	}
 
-	time_t ltime;
-	struct tm* timeinfo;
+	// time_t ltime;
+	// struct tm* timeinfo;
 
-	time(&ltime);
-	timeinfo = localtime(&ltime);
-	snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+	// time(&ltime);
+	// timeinfo = localtime(&ltime);
+	// snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
 
+	char *t = getTime();
 	if (!isDestination) {
 		int destIndex;
 		char tname;
@@ -388,7 +390,7 @@ void outputPacket(struct router *table, struct packet *p, bool isDestination) {
 		destIndex = getDestPortIndex(table, routerToPort(p->dstNode));
 		tname = tableName(table);
 
-		fprintf(f, "\nReceived data packet:\nTimestamp: %s\nSource Node: %c\nDestination Node: %c\nArrival UDP Port: %i\nOutgoing UDP Port: %i\n", timeBuffer, p->srcNode, p->dstNode, routerToPort(tname), table->outgoingPorts[destIndex]);
+		fprintf(f, "\nReceived data packet:\nTimestamp: %s\nSource Node: %c\nDestination Node: %c\nArrival UDP Port: %i\nOutgoing UDP Port: %i\n", t, p->srcNode, p->dstNode, routerToPort(tname), table->outgoingPorts[destIndex]);
 	} else {
 		fprintf(f, "\nCumulative information about data packet:\nTimestamp: %s\nMessage: %s\nSource Node: %c\nDestination Node: %c\nArrival (Destination) UDP Port: %i\n", timeBuffer, p->message, p->srcNode, p->dstNode, routerToPort(p->dstNode));
 	}
@@ -502,16 +504,17 @@ void initializeOutputFiles(struct router **network) {
 
         	if (f == NULL)
             		error("Error opening file");
-        	// Timestamp
-        	time_t ltime;
-		struct tm* timeinfo;
+        // Timestamp
+  //       time_t ltime;
+		// struct tm* timeinfo;
 
-		time(&ltime);
-		timeinfo = localtime(&ltime);
+		// time(&ltime);
+		// timeinfo = localtime(&ltime);
 
-        	snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+  //       	snprintf(timeBuffer, timeBufferSize, "%ld", timeinfo);
+            	char *t = getTime();
 
-        	fprintf(f, "Timestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", timeBuffer);
+        	fprintf(f, "Timestamp: %s\nDestination, Cost, Outgoing Port, Destination Port\n", t);
         	int i;
         	for (i=0; i<NUMROUTERS; i++) {
             		fprintf(f, "%c %i %i %i\n",
