@@ -392,7 +392,7 @@ void outputPacket(struct router *table, struct packet *p, bool isDestination) {
 
 		fprintf(f, "\nReceived data packet:\nTimestamp: %s\nSource Node: %c\nDestination Node: %c\nArrival UDP Port: %i\nOutgoing UDP Port: %i\n", t, p->srcNode, p->dstNode, routerToPort(tname), table->outgoingPorts[destIndex]);
 	} else {
-		fprintf(f, "\nCumulative information about data packet:\nTimestamp: %s\nMessage: %s\nSource Node: %c\nDestination Node: %c\nArrival (Destination) UDP Port: %i\n", timeBuffer, p->message, p->srcNode, p->dstNode, routerToPort(p->dstNode));
+		fprintf(f, "\nCumulative information about data packet:\nTimestamp: %s\nMessage: %s\nSource Node: %c\nDestination Node: %c\nArrival (Destination) UDP Port: %i\n", t, p->message, p->srcNode, p->dstNode, routerToPort(p->dstNode));
 	}
 	fclose(f);
 }
@@ -725,7 +725,7 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 						break;
 				}
 				tableA->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-				tableA->outgoingPorts[atoi(ptrOP)-10000] = ROUTERA;
+				tableA->outgoingPorts[atoi(ptrOP)-10000] = /*ROUTERA*/atoi(ptrOP);
 				tableA->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 			}
 		} else if (strcmp(ptr, "B") == 0 && !killedRouters[1]) {
@@ -758,7 +758,7 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 						break;
 				}
 				tableB->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-				tableB->outgoingPorts[atoi(ptrOP)-10000] = ROUTERB;
+				tableB->outgoingPorts[atoi(ptrOP)-10000] = /*ROUTERB*/atoi(ptrOP);
 				tableB->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);		
 			}
 		} else if (strcmp(ptr, "C") == 0 && !killedRouters[2]) {
@@ -790,7 +790,7 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 						break;
 				}
 				tableC->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-				tableC->outgoingPorts[atoi(ptrOP)-10000] = ROUTERC;
+				tableC->outgoingPorts[atoi(ptrOP)-10000] = /*ROUTERC*/atoi(ptrOP);
 				tableC->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 			}
 		} else if (strcmp(ptr, "D") == 0 && !killedRouters[3]) {
@@ -822,7 +822,7 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 						break;
 				}
 				tableD->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-				tableD->outgoingPorts[atoi(ptrOP)-10000] = ROUTERD;
+				tableD->outgoingPorts[atoi(ptrOP)-10000] = /*ROUTERD*/atoi(ptrOP);
 				tableD->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 			}
 		} else if (strcmp(ptr, "E") == 0 && !killedRouters[4]) {
@@ -854,7 +854,7 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 						break;
 				}
 				tableE->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-				tableE->outgoingPorts[atoi(ptrOP)-10000] = ROUTERE;
+				tableE->outgoingPorts[atoi(ptrOP)-10000] = /*ROUTERE*/atoi(ptrOP);
 				tableE->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 			}
 		} else if (strcmp(ptr, "F") == 0 && !killedRouters[5]) {
@@ -886,7 +886,7 @@ struct matrix initializeFromFile(struct router *tableA, struct router *tableB, s
 						break;
 				}
 				tableF->costs[atoi(ptrOP)-10000] = atoi(ptrCost);
-				tableF->outgoingPorts[atoi(ptrOP)-10000] = ROUTERF;
+				tableF->outgoingPorts[atoi(ptrOP)-10000] = /*ROUTERF*/atoi(ptrOP);
 				tableF->destinationPorts[atoi(ptrOP)-10000] = atoi(ptrOP);
 			}
 		}
@@ -1334,7 +1334,7 @@ re_initialize:
 					}
 				}
 			}
-			if (count >= NUMROUTERS * 2) {
+			if (count >= NUMROUTERS * 100) {
 				for (i=0; i<NUMROUTERS; i++) {
 					outputTable(network[i], true);
 				}
